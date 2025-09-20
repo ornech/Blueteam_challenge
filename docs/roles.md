@@ -2,7 +2,6 @@
 
 > Mode d’emploi : chaque rôle doit produire les livrables listés. Toute action technique doit être validée par le Chef d’incident avant exécution. Horodater chaque entrée : `YYYY-MM-DD HH:MM`.
 
----
 
 ## 🎖️ Chef d’incident
 **Description (rôle)**  
@@ -187,3 +186,4 @@ robocopy C:\temp \\srv\evidence\inc_20250920_0930 /E /COPYALL /B /R:1 /W:1
   * `hashes_inc_20250920_0930.txt`
 
 ```
+
