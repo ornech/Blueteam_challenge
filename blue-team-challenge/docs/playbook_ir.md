@@ -1,8 +1,8 @@
-# Playbook IR — Exercice Blue Team (BTS SIO)
+# Playbook IR
 
-**But** : procédure courte et exécutable pour détecter, contenir, analyser, remédier et communiquer lors d’un incident simulé en lab.
+**But** : procédure courte et exécutable pour détecter, contenir, analyser, remédier et communiquer lors d’un incident.
 
-> Utilisation : ce playbook est un guide opérationnel. En séance, suivez les étapes dans l’ordre, horodatez tout et ne supprimez rien avant copie sur `\\srv\evidence\inc_YYYYMMDD_HHMM\`.
+> Utilisation : ce playbook est un guide opérationnel. Suivez les étapes dans l’ordre, horodatez tout et ne supprimez rien avant copie sur le serveur dédié au receuil de preuves.
 
 ---
 
@@ -240,3 +240,4 @@ scp /tmp/inc_YYYYMMDD.tgz evidence@10.0.0.5:/srv/evidence/inc_YYYYMMDD/
 * Adapte les commandes et event\_ids à ton environnement SIEM/Windows.
 * Teste toutes les commandes sur tes VM avant la séance.
 * Rappelle aux étudiants l’interdiction de toute action destructive.
+
