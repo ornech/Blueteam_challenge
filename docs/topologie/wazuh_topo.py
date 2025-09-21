@@ -1,36 +1,59 @@
-# wazuh_3labs_topo.py
-# Génère une topologie Wazuh + 3 labs (DVWA, Agent, Attacker) en PNG/SVG via diagrams.
-from diagrams import Diagram, Cluster
+from diagrams import Diagram, Cluster, Edge
+from diagrams.generic.os import LinuxGeneral
 from diagrams.generic.network import Switch
-from diagrams.generic.compute import Rack
-from diagrams.onprem.client import Client
+from diagrams.generic.database import SQL
+from diagrams.generic.place import Datacenter
 
-GROUPS = 3
-MANAGER_IP = "10.10.0.10"
-PROXY_IP = "10.10.0.20"
+graph_attr = {
+    "fontsize": "16",
+    "bgcolor": "white",
+    "rankdir": "TB",  # Top -> Bottom
+    "splines": "ortho",
+}
 
-def agent_ip(g): return f"10.10.{g}.10"
-def service_ip(g): return f"10.10.{g}.20"
-def attacker_ip(g): return f"10.10.{g}.30"
-def vlan_id(g): return 100 + g
+node_attr = {
+    "fontsize": "12",
+    "shape": "box",
+    "style": "filled",
+    "fillcolor": "white",
+}
 
-output_path = "wazuh_3labs_topo"   # produces wazuh_3labs_topo.png (and .svg if you change extension)
-with Diagram("Wazuh TP - 3 Labs Topology", show=False, filename=output_path, direction="LR"):
-    sw = Switch("Switch / Router (trunk)")
-    mgr = Rack(f"Wazuh Manager\n{MANAGER_IP}\n(Elastic+Kibana)")
-    proxy = Client(f"Proxy / Kibana\n{PROXY_IP}")
+colors = {
+    "bastion": "#f0f8ff",
+    "attacker": "#ffebee",
+    "victim": "#f0fff0",
+    "monitoring": "#fff8e1",
+    "network": "#f0f0f0",
+}
 
-    for i in range(1, GROUPS + 1):
-        with Cluster(f"VLAN {vlan_id(i)} - Lab {i}\n10.10.{i}.0/24"):
-            ag = Rack(f"Agent{i}\n{agent_ip(i)}")
-            svc = Rack(f"DVWA{i}\n{service_ip(i)}")
-            att = Client(f"Attacker{i}\n{attacker_ip(i)}")
-            # local interactions inside lab
-            att >> ag
-            svc >> ag
-            # reporting to manager
-            ag >> mgr
+with Diagram("Topologie Blueteam Challenge - Bastion en bas",
+             show=False, filename="topologie_bastion_bas",
+             outformat="png", graph_attr=graph_attr, node_attr=node_attr):
 
-    # core links
-    sw >> mgr
-    sw >> proxy
+    lab_kibanas = []
+
+    # --- Labs en haut ---
+    for i in range(1, 4):
+        with Cluster(f"Lab {i} (VLAN {9+i})"):
+            attacker = LinuxGeneral(f"Attacker{i}", fillcolor=colors["attacker"])
+            dvwa = LinuxGeneral(f"DVWA{i}", fillcolor=colors["victim"])
+            db = SQL(f"MariaDB{i}", fillcolor=colors["victim"])
+            wazuh = Datacenter(f"Wazuh{i}", fillcolor=colors["monitoring"])
+            es = SQL(f"Elastic{i}", fillcolor=colors["monitoring"])
+            kib = Datacenter(f"Kibana{i}", fillcolor=colors["monitoring"])
+
+            attacker >> dvwa >> db
+            dvwa >> wazuh >> es >> kib
+
+            lab_kibanas.append(kib)
+
+    # --- Réseau et bastion en bas ---
+    with Cluster("Accès / Réseau", graph_attr={"rank": "sink"}):
+        switch = Switch("Switch VLANs", fillcolor=colors["network"])
+        bastion = LinuxGeneral("Bastion / Prof", fillcolor=colors["bastion"])
+
+    # Liens
+    bastion >> Edge(color="blue", style="bold") >> switch
+    for kib in lab_kibanas:
+        switch >> Edge(color="blue", style="dotted") >> kib
+
