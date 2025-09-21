@@ -55,6 +55,11 @@ services:
       - lab1_mariadb
     environment:
       - MYSQL_HOST=lab1_mariadb
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=dvwa
+      - MYSQL_DATABASE=dvwa
+      - PHP_DISPLAY_ERRORS=1
+      - DVWA_SECURITY=low
     networks:
       - labnet1
 
@@ -121,7 +126,12 @@ services:
     depends_on:
       - lab2_mariadb
     environment:
-      - MYSQL_HOST=lab2_mariadb
+      - MYSQL_HOST=lab1_mariadb
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=dvwa
+      - MYSQL_DATABASE=dvwa
+      - PHP_DISPLAY_ERRORS=1
+      - DVWA_SECURITY=low
     networks:
       - labnet2
 
@@ -188,7 +198,12 @@ services:
     depends_on:
       - lab3_mariadb
     environment:
-      - MYSQL_HOST=lab3_mariadb
+      - MYSQL_HOST=lab1_mariadb
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=dvwa
+      - MYSQL_DATABASE=dvwa
+      - PHP_DISPLAY_ERRORS=1
+      - DVWA_SECURITY=low
     networks:
       - labnet3
 
