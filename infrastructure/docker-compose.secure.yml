@@ -26,15 +26,15 @@ services:
     depends_on:
       - lab1_elasticsearch
 
-  lab1_wazuh:
-    image: wazuh/wazuh:4.4.0
-    container_name: lab1_wazuh
-    depends_on:
-      - lab1_elasticsearch
-    environment:
-      - ELASTICSEARCH_URL=http://lab1_elasticsearch:9200
-    networks:
-      - labnet1
+  # lab1_wazuh:
+  #   image: wazuh/wazuh:4.4.0
+  #   container_name: lab1_wazuh
+  #   depends_on:
+  #     - lab1_elasticsearch
+  #   environment:
+  #     - ELASTICSEARCH_URL=http://lab1_elasticsearch:9200
+  #   networks:
+  #     - labnet1
 
   lab1_mariadb:
     image: mariadb:10.6
@@ -101,15 +101,15 @@ services:
     depends_on:
       - lab2_elasticsearch
 
-  lab2_wazuh:
-    image: wazuh/wazuh:4.4.0
-    container_name: lab2_wazuh
-    depends_on:
-      - lab2_elasticsearch
-    environment:
-      - ELASTICSEARCH_URL=http://lab2_elasticsearch:9200
-    networks:
-      - labnet2
+  # lab2_wazuh:
+  #   image: wazuh/wazuh:4.4.0
+  #   container_name: lab2_wazuh
+  #   depends_on:
+  #     - lab2_elasticsearch
+  #   environment:
+  #     - ELASTICSEARCH_URL=http://lab2_elasticsearch:9200
+  #   networks:
+  #     - labnet2
 
   lab2_mariadb:
     image: mariadb:10.6
@@ -176,15 +176,15 @@ services:
     depends_on:
       - lab3_elasticsearch
 
-  lab3_wazuh:
-    image: wazuh/wazuh:4.4.0
-    container_name: lab3_wazuh
-    depends_on:
-      - lab3_elasticsearch
-    environment:
-      - ELASTICSEARCH_URL=http://lab3_elasticsearch:9200
-    networks:
-      - labnet3
+  # lab3_wazuh:
+  #   image: wazuh/wazuh:4.4.0
+  #   container_name: lab3_wazuh
+  #   depends_on:
+  #     - lab3_elasticsearch
+  #   environment:
+  #     - ELASTICSEARCH_URL=http://lab3_elasticsearch:9200
+  #   networks:
+  #     - labnet3
 
   lab3_mariadb:
     image: mariadb:10.6
