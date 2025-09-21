@@ -14,44 +14,6 @@ Objectif : plonger les étudiants en situation de **gestion d’incident** (atta
 
 ---
 
-## 📂 Structure du dépôt
-
-```
-
-blue-team-challenge/
-├── README.md                        # Présentation du projet
-├── .gitignore                       # Fichiers à exclure
-│
-├── docs/                            # Documentation pédagogique
-│   ├── introduction.md              # Contexte & déroulé du challenge
-│   ├── playbook\_ir.md               # Playbook Incident Response (macro-processus)
-│   ├── roles.md                     # Fiches de rôle (Chef, SOC, Forensic)
-│   ├── cheatsheet\_cmds.md           # Commandes Windows/Linux/SIEM
-│   ├── livrables.md                 # Liste des livrables attendus
-│   └── regles\_securite.md           # Règles de sécurité du lab
-│
-├── scenarios/                       # Scénarios d’incidents
-│   ├── scenario\_eleve\_phishing\_updatertask.md   # Version à donner aux étudiants
-│   └── scenario\_teacher\_notes.md                # Notes pour l’enseignant (Red Team)
-│
-├── scripts/                         # Scripts de simulation & collecte
-│   ├── linux\_collect.sh             # Collecte Linux (processus, logs, hashes)
-│   ├── win\_collect.ps1              # Collecte Windows (tasklist, netstat, evtx)
-│   └── red\_simulation.ps1           # Simulation Red Team (enseignant)
-│
-├── evaluation/                      # Évaluation et scoring
-│   ├── grille\_evaluation.csv        # Barème par rôle
-│   └── scoring\_correction\_template.csv # Modèle de correction
-│
-└── resources/                       # Ressources pédagogiques
-├── journal\_template\_inc\_YYYYMMDD\_HHMM.txt   # Journal d’incident
-├── brief\_direction\_template.txt            # Modèle de message direction
-└── message\_users\_template.txt              # Modèle de message utilisateurs
-
-````
-
----
-
 ## 🕹️ Déroulé du challenge
 
 1. **Mise en situation** : l’enseignant (Red Team) injecte un incident simulé (phishing, tâche planifiée, exfiltration).  
