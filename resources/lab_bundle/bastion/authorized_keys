@@ -1,0 +1,3 @@
+# fichier bastion/authorized_keys contenant la clef publique du prof
+# (mode chmod 400 côté hôte).
+# Le docker-compose la monte en lecture et la mettra en place pour root.
