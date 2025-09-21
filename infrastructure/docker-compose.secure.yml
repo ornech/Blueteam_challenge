@@ -126,7 +126,7 @@ services:
     depends_on:
       - lab2_mariadb
     environment:
-      - MYSQL_HOST=lab1_mariadb
+      - MYSQL_HOST=lab2_mariadb
       - MYSQL_USER=dvwa
       - MYSQL_PASSWORD=dvwa
       - MYSQL_DATABASE=dvwa
@@ -198,7 +198,7 @@ services:
     depends_on:
       - lab3_mariadb
     environment:
-      - MYSQL_HOST=lab1_mariadb
+      - MYSQL_HOST=lab3_mariadb
       - MYSQL_USER=dvwa
       - MYSQL_PASSWORD=dvwa
       - MYSQL_DATABASE=dvwa
@@ -208,6 +208,9 @@ services:
       - labnet3
 
   lab3_attacker:
+    build:
+      context: ./attacker
+      dockerfile: Dockerfile
     image: lab_attacker:latest
     container_name: lab3_attacker
     command: sleep infinity
