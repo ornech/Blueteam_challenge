@@ -1,26 +1,36 @@
+# wazuh_3labs_topo.py
+# Génère une topologie Wazuh + 3 labs (DVWA, Agent, Attacker) en PNG/SVG via diagrams.
 from diagrams import Diagram, Cluster
 from diagrams.generic.network import Switch
 from diagrams.generic.compute import Rack
-from diagrams.generic.blank import Blank
 from diagrams.onprem.client import Client
 
-with Diagram("Topologie TP Wazuh", show=False, filename="wazuh_topo", direction="TB"):
+GROUPS = 3
+MANAGER_IP = "10.10.0.10"
+PROXY_IP = "10.10.0.20"
+
+def agent_ip(g): return f"10.10.{g}.10"
+def service_ip(g): return f"10.10.{g}.20"
+def attacker_ip(g): return f"10.10.{g}.30"
+def vlan_id(g): return 100 + g
+
+output_path = "wazuh_3labs_topo"   # produces wazuh_3labs_topo.png (and .svg if you change extension)
+with Diagram("Wazuh TP - 3 Labs Topology", show=False, filename=output_path, direction="LR"):
     sw = Switch("Switch / Router (trunk)")
-    mgr = Rack("Wazuh Manager\n(Elastic + Kibana)")
-    prof = Client("Prof / Kibana Web")
+    mgr = Rack(f"Wazuh Manager\n{MANAGER_IP}\n(Elastic+Kibana)")
+    proxy = Client(f"Proxy / Kibana\n{PROXY_IP}")
 
-    with Cluster("VLAN 10 - Groupe 1"):
-        agent1 = Rack("Agent1 (Linux)")
-        attacker1 = Client("Attacker1 (Kali)")
+    for i in range(1, GROUPS + 1):
+        with Cluster(f"VLAN {vlan_id(i)} - Lab {i}\n10.10.{i}.0/24"):
+            ag = Rack(f"Agent{i}\n{agent_ip(i)}")
+            svc = Rack(f"DVWA{i}\n{service_ip(i)}")
+            att = Client(f"Attacker{i}\n{attacker_ip(i)}")
+            # local interactions inside lab
+            att >> ag
+            svc >> ag
+            # reporting to manager
+            ag >> mgr
 
-    with Cluster("VLAN 11 - Groupe 2"):
-        agent2 = Rack("Agent2 (Linux)")
-        attacker2 = Client("Attacker2 (Kali)")
-
-    # Connexions
+    # core links
     sw >> mgr
-    sw >> prof
-    agent1 >> mgr
-    agent2 >> mgr
-    attacker1 >> agent1
-    attacker2 >> agent2
+    sw >> proxy
