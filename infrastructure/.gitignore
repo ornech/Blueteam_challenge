@@ -1,0 +1,9 @@
+# Docker / local / temp
+*.log
+*.zip
+labs/**
+**/node_modules/
+**/__pycache__/
+*.pyc
+**/data/
+*.env
