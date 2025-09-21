@@ -1,4 +1,4 @@
-version: "3.8"
+#version: "3.8"
 services:
   # --- LAB 1 (no host ports published for Kibana/DVWA) ---
   lab1_elasticsearch:
@@ -64,6 +64,9 @@ services:
       - labnet1
 
   lab1_attacker:
+    build:
+      context: ./attacker
+      dockerfile: Dockerfile
     image: lab_attacker:latest
     container_name: lab1_attacker
     command: sleep infinity
@@ -136,6 +139,9 @@ services:
       - labnet2
 
   lab2_attacker:
+    build:
+      context: ./attacker
+      dockerfile: Dockerfile
     image: lab_attacker:latest
     container_name: lab2_attacker
     command: sleep infinity
