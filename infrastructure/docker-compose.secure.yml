@@ -43,8 +43,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: rootpass
       MYSQL_DATABASE: dvwa
-      MYSQL_USER: dvwa
-      MYSQL_PASSWORD: dvwa
+      MYSQL_USER: app
+      MYSQL_PASSWORD: vulnerables
     networks:
       - labnet1
 
@@ -118,8 +118,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: rootpass
       MYSQL_DATABASE: dvwa
-      MYSQL_USER: dvwa
-      MYSQL_PASSWORD: dvwa
+      MYSQL_USER: app
+      MYSQL_PASSWORD: vulnerables
     networks:
       - labnet2
 
@@ -193,8 +193,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: rootpass
       MYSQL_DATABASE: dvwa
-      MYSQL_USER: dvwa
-      MYSQL_PASSWORD: dvwa
+      MYSQL_USER: app
+      MYSQL_PASSWORD: vulnerables
     networks:
       - labnet3
 
