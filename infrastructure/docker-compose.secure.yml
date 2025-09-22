@@ -60,6 +60,8 @@ services:
       - MYSQL_DATABASE=dvwa
       - PHP_DISPLAY_ERRORS=1
       - DVWA_SECURITY=low
+    volumes:
+      - ./dvwa_config/lab1.config.inc.php:/var/www/html/config/config.inc.php:ro
     networks:
       - labnet1
 
@@ -137,6 +139,8 @@ services:
       - DVWA_SECURITY=low
     networks:
       - labnet2
+    volumes:
+      - ./dvwa_config/lab2.config.inc.php:/var/www/html/config/config.inc.php:ro
 
   lab2_attacker:
     build:
@@ -212,6 +216,8 @@ services:
       - DVWA_SECURITY=low
     networks:
       - labnet3
+    volumes:
+      - ./dvwa_config/lab3.config.inc.php:/var/www/html/config/config.inc.php:ro
 
   lab3_attacker:
     build:
