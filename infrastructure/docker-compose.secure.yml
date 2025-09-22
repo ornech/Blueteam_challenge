@@ -55,8 +55,8 @@ services:
       - lab1_mariadb
     environment:
       - MYSQL_HOST=lab1_mariadb
-      - MYSQL_USER=dvwa
-      - MYSQL_PASSWORD=dvwa
+      - MYSQL_USER=app
+      - MYSQL_PASSWORD=vulnerables
       - MYSQL_DATABASE=dvwa
       - PHP_DISPLAY_ERRORS=1
       - DVWA_SECURITY=low
@@ -130,8 +130,8 @@ services:
       - lab2_mariadb
     environment:
       - MYSQL_HOST=lab2_mariadb
-      - MYSQL_USER=dvwa
-      - MYSQL_PASSWORD=dvwa
+      - MYSQL_USER=app
+      - MYSQL_PASSWORD=vulnerables
       - MYSQL_DATABASE=dvwa
       - PHP_DISPLAY_ERRORS=1
       - DVWA_SECURITY=low
@@ -205,8 +205,8 @@ services:
       - lab3_mariadb
     environment:
       - MYSQL_HOST=lab3_mariadb
-      - MYSQL_USER=dvwa
-      - MYSQL_PASSWORD=dvwa
+      - MYSQL_USER=app
+      - MYSQL_PASSWORD=vulnerables
       - MYSQL_DATABASE=dvwa
       - PHP_DISPLAY_ERRORS=1
       - DVWA_SECURITY=low
