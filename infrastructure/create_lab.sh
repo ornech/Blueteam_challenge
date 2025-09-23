@@ -9,6 +9,7 @@ DATA_DIR="$SCRIPT_DIR/data"
 NGINX_CONF_DIR="$SCRIPT_DIR/nginx/conf.d"
 PROXY_CONTAINER="nginx_reverse_proxy"
 PROJECT_NAME=$(basename "$SCRIPT_DIR")
+PROXY_COMPOSE_FILE="$SCRIPT_DIR/nginx-proxy.yml"
 
 # --- ARG CHECK ---
 if [ $# -ne 1 ]; then
@@ -24,6 +25,18 @@ COMPOSE_FILE="$SCRIPT_DIR/docker-compose-${LAB_NAME}.yml"
 mkdir -p "$ENV_DIR" "$NGINX_CONF_DIR" \
          "$DATA_DIR/${LAB_NAME}/wazuh_manager" \
          "$DATA_DIR/${LAB_NAME}/wazuh_indexer"
+
+# --- ENSURE PROXY IS RUNNING ---
+echo "[*] Vérification du conteneur proxy $PROXY_CONTAINER..."
+if ! docker ps -a --format '{{.Names}}' | grep -q "^${PROXY_CONTAINER}\$"; then
+    echo "DEBUG: proxy absent → lancement via $PROXY_COMPOSE_FILE"
+    docker compose -f "$PROXY_COMPOSE_FILE" up -d
+elif ! docker inspect -f '{{.State.Running}}' $PROXY_CONTAINER 2>/dev/null | grep -q true; then
+    echo "DEBUG: proxy présent mais arrêté → démarrage"
+    docker start $PROXY_CONTAINER
+else
+    echo "DEBUG: proxy déjà en cours d'exécution"
+fi
 
 # --- CLEAN OLD RESOURCES FOR THIS LAB ---
 echo "[*] Nettoyage de l'ancien environnement Docker pour ${LAB_NAME}..."
