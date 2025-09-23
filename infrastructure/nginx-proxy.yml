@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   nginx_reverse_proxy:
     image: nginx:stable
@@ -6,10 +8,14 @@ services:
     ports:
       - "80:80"
     volumes:
+      # Confs générées par create_lab.sh
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      # Logs nginx pour debug
       - ./nginx/logs:/var/log/nginx
     networks:
       - labnet_global
+    # Pas d’attachement à un réseau externe ici :
+    # create_lab.sh connectera dynamiquement le conteneur au réseau du lab.
 
 networks:
   labnet_global:

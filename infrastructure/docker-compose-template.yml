@@ -18,9 +18,14 @@ services:
       ${LAB_NAME}_net:
         aliases:
           - ${LAB_NAME}_wazuh_manager
+    healthcheck:
+      test: ["CMD", "curl", "-k", "https://localhost:55000"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
 
   ${LAB_NAME}_wazuh_indexer:
-    image: wazuh/wazuh-indexer:4.13.0 # ou :4.4.0 si tu veux pinner la version
+    image: wazuh/wazuh-indexer:4.13.0
     container_name: ${LAB_NAME}_wazuh_indexer
     hostname: ${LAB_NAME}_wazuh_indexer
     restart: always
@@ -29,31 +34,28 @@ services:
       - cluster.name=${LAB_NAME}-cluster
       - node.name=${LAB_NAME}_wazuh_indexer
       - discovery.type=single-node
-
-      # Mode debug : désactive le plugin security -> indexer écoute en HTTP.
-      # En production: retire ou mets sur "false" et fournis config + certs.
       - DISABLE_SECURITY_PLUGIN=true
-
-      # Java embarqué dans l'image (utile si tu veux lancer securityadmin.sh depuis le container)
       - OPENSEARCH_JAVA_HOME=/usr/share/wazuh-indexer/jdk
       - JAVA_HOME=/usr/share/wazuh-indexer/jdk
-
     ulimits:
       memlock:
         soft: -1
         hard: -1
     volumes:
       - ./data/${LAB_NAME}/wazuh_indexer:/var/lib/wazuh-indexer
-      # si tu montes une config custom, monte explicitement /usr/share/wazuh-indexer/config (ne pas écraser par erreur)
-      # - ./data/${LAB_NAME}/wazuh_indexer_config:/usr/share/wazuh-indexer/config:ro
     networks:
       ${LAB_NAME}_net:
         aliases:
           - ${LAB_NAME}_wazuh_indexer
           - wazuh.indexer
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
 
   ${LAB_NAME}_wazuh_dashboard:
-    image: wazuh/wazuh-dashboard:4.13.0 # ou :4.4.0
+    image: wazuh/wazuh-dashboard:4.13.0
     container_name: ${LAB_NAME}_wazuh_dashboard
     hostname: ${LAB_NAME}_wazuh_dashboard
     restart: always
@@ -61,10 +63,7 @@ services:
       - WAZUH_API_URL=https://${LAB_NAME}_wazuh_manager:55000
       - WAZUH_API_USER=admin
       - WAZUH_API_PASSWORD=SecretPass123
-
-      # <<< IMPORTANT : indexer en HTTP (plugin security désactivé) >>>
       - OPENSEARCH_HOSTS=http://${LAB_NAME}_wazuh_indexer:9200
-
     ports:
       - "${WAZUH_PORT_5601}:5601"
     networks:
@@ -72,8 +71,15 @@ services:
         aliases:
           - ${LAB_NAME}_wazuh_dashboard
     depends_on:
-      - ${LAB_NAME}_wazuh_manager
-      - ${LAB_NAME}_wazuh_indexer
+      ${LAB_NAME}_wazuh_manager:
+        condition: service_healthy
+      ${LAB_NAME}_wazuh_indexer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5601"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
 
   ${LAB_NAME}_mariadb:
     image: mariadb:10.6
@@ -90,13 +96,27 @@ services:
       ${LAB_NAME}_net:
         aliases:
           - ${LAB_NAME}_mariadb
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-p$MYSQL_ROOT_PASSWORD",
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 10
 
   ${LAB_NAME}_dvwa:
     image: vulnerables/web-dvwa:latest
     container_name: ${LAB_NAME}_dvwa
     restart: always
     depends_on:
-      - ${LAB_NAME}_mariadb
+      ${LAB_NAME}_mariadb:
+        condition: service_healthy
     environment:
       - MYSQL_HOST=${LAB_NAME}_mariadb
       - MYSQL_USER=app
@@ -108,25 +128,8 @@ services:
       ${LAB_NAME}_net:
         aliases:
           - ${LAB_NAME}_dvwa
-
-  ${LAB_NAME}_attacker:
-    build:
-      context: ./attacker
-      dockerfile: Dockerfile
-    image: lab_attacker:latest
-    container_name: ${LAB_NAME}_attacker
-    restart: "no"
-    command: sleep infinity
-    volumes:
-      - ./attacker/attacks:/opt/attacks:ro
-    networks:
-      ${LAB_NAME}_net:
-        aliases:
-          - ${LAB_NAME}_attacker
-
-networks:
-  ${LAB_NAME}_net:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: "${LAB_SUBNET}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
