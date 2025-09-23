@@ -29,6 +29,7 @@ services:
       - cluster.name=${LAB_NAME}-cluster
       - node.name=${LAB_NAME}_wazuh_indexer
       - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true # <- important pour mode HTTP
     ulimits:
       memlock:
         soft: -1
