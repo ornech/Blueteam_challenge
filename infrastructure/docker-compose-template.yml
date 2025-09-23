@@ -19,40 +19,32 @@ services:
         aliases:
           - ${LAB_NAME}_wazuh_manager
 
-${LAB_NAME}_wazuh_indexer:
-    image: wazuh/wazuh-indexer:latest
+  ${LAB_NAME}_wazuh_indexer:
+    image: wazuh/wazuh-indexer:latest # ou :4.4.0 si tu veux pinner la version
     container_name: ${LAB_NAME}_wazuh_indexer
     hostname: ${LAB_NAME}_wazuh_indexer
     restart: always
     environment:
-      # mémoire Java (ajuste si pas assez de RAM sur l'hôte)
       - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
-
-      # OpenSearch / cluster options
       - cluster.name=${LAB_NAME}-cluster
       - node.name=${LAB_NAME}_wazuh_indexer
       - discovery.type=single-node
 
-      # Pour dépannage rapide : désactive le plugin de sécurité (force HTTP).
-      # -> utile pour debug et pour que dashboard puisse parler en HTTP.
-      # Retire ou passe à "false" en production si tu veux la sécurité TLS/auth.
+      # Mode debug : désactive le plugin security -> indexer écoute en HTTP.
+      # En production: retire ou mets sur "false" et fournis config + certs.
       - DISABLE_SECURITY_PLUGIN=true
 
-      # JAVA home fourni par l'image (utilisé par securityadmin et le bootstrap)
+      # Java embarqué dans l'image (utile si tu veux lancer securityadmin.sh depuis le container)
       - OPENSEARCH_JAVA_HOME=/usr/share/wazuh-indexer/jdk
       - JAVA_HOME=/usr/share/wazuh-indexer/jdk
-
-      # (optionnel) si tu montes des configs custom, précise le chemin ici ; sinon laisse vide.
-      # - OPENSEARCH_PATH_CONF=/usr/share/wazuh-indexer/config
 
     ulimits:
       memlock:
         soft: -1
         hard: -1
-    # Persistance des données (ne pas monter le répertoire image /config qui pourrait masquer les configs de l'image)
     volumes:
       - ./data/${LAB_NAME}/wazuh_indexer:/var/lib/wazuh-indexer
-      # si tu veux persister certificats/config manuellemnt, monter explicitement un dossier:
+      # si tu montes une config custom, monte explicitement /usr/share/wazuh-indexer/config (ne pas écraser par erreur)
       # - ./data/${LAB_NAME}/wazuh_indexer_config:/usr/share/wazuh-indexer/config:ro
     networks:
       ${LAB_NAME}_net:
@@ -60,21 +52,21 @@ ${LAB_NAME}_wazuh_indexer:
           - ${LAB_NAME}_wazuh_indexer
           - wazuh.indexer
 
-
   ${LAB_NAME}_wazuh_dashboard:
-    image: wazuh/wazuh-dashboard:4.4.0
+    image: wazuh/wazuh-dashboard:latest # ou :4.4.0
     container_name: ${LAB_NAME}_wazuh_dashboard
     hostname: ${LAB_NAME}_wazuh_dashboard
     restart: always
     environment:
-      # Wazuh Dashboard talks to the Wazuh API (manager) on HTTPS port 55000
       - WAZUH_API_URL=https://${LAB_NAME}_wazuh_manager:55000
       - WAZUH_API_USER=admin
       - WAZUH_API_PASSWORD=SecretPass123
-      - OPENSEARCH_HOSTS=http://${LAB_NAME}_wazuh_indexer:9200 # ← forcer HTTP
+
+      # <<< IMPORTANT : indexer en HTTP (plugin security désactivé) >>>
+      - OPENSEARCH_HOSTS=http://${LAB_NAME}_wazuh_indexer:9200
 
     ports:
-      - "${WAZUH_PORT_5601}:5601" # force mapping to host port (ex: 5601)
+      - "${WAZUH_PORT_5601}:5601"
     networks:
       ${LAB_NAME}_net:
         aliases:
