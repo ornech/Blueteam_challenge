@@ -192,22 +192,21 @@ fi
 # --- NGINX conf pour ce lab ---
 # --- NGINX conf pour ce lab ---
 log_info "Génération de la config Nginx pour ${LAB_NAME} → $NGINX_FILE"
-cat > "$NGINX_FILE" <<'EOF'
+cat > "$NGINX_FILE" <<EOF
 
 server {
     listen 80;
     server_name dvwa.${LAB_NAME}.local;
 
-    # DNS Docker interne dans le conteneur nginx
     resolver 127.0.0.11 valid=30s ipv6=off;
 
     location / {
         proxy_pass http://${LAB_NAME}_dvwa:80;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 }
 
@@ -220,22 +219,23 @@ server {
     location / {
         proxy_pass https://${LAB_NAME}_wazuh_dashboard:5601;
         proxy_ssl_server_name on;
-        proxy_ssl_verify off;                       # self-signed dans le lab
+        proxy_ssl_verify off;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
 
-        # WebSocket / SSE (Kibana dashboard)
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
     }
 }
 
 EOF
 log_ok "Config Nginx générée : $NGINX_FILE"
-              
+
+
+
 
 # --- RELOAD NGINX in proxy container (if running) ---
 log_info "Reload de Nginx dans le conteneur ${PROXY_CONTAINER} (si actif)..."
