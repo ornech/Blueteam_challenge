@@ -139,14 +139,15 @@ if [ -f "$ENV_FILE" ]; then
     log_warn "Le fichier $ENV_FILE existe déjà. On ne l'écrase pas."
 else
     log_info "Génération du fichier .env pour ${LAB_NAME}..."
-    cat > "$ENV_FILE" <<EOF
-LAB_NAME=${LAB_NAME}
-LAB_SUBNET=${LAB_SUBNET}
-WAZUH_PORT_1514=$((1500 + LAB_NUM))
-WAZUH_PORT_1515=$((1510 + LAB_NUM))
-WAZUH_PORT_55000=$((55000 + LAB_NUM))
-WAZUH_PORT_5601=$((5600 + LAB_NUM))
-EOF
+        cat > "$ENV_FILE" <<EOF
+        COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
+        LAB_NAME=${LAB_NAME}
+        LAB_SUBNET=${LAB_SUBNET}
+        WAZUH_PORT_1514=$((1500 + LAB_NUM))
+        WAZUH_PORT_1515=$((1510 + LAB_NUM))
+        WAZUH_PORT_55000=$((55000 + LAB_NUM))
+        WAZUH_PORT_5601=$((5600 + LAB_NUM))
+        EOF
     log_ok "Fichier .env généré : $ENV_FILE"
 fi
 
