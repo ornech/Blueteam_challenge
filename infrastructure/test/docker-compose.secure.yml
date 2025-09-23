@@ -1,0 +1,272 @@
+#version: "3.8"
+services:
+  # --- LAB 1 (no host ports published for Kibana/DVWA) ---
+  lab1_elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    container_name: lab1_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - lab1_esdata:/usr/share/elasticsearch/data
+    networks:
+      - labnet1
+
+  lab1_kibana:
+    image: docker.elastic.co/kibana/kibana:8.8.0
+    container_name: lab1_kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://lab1_elasticsearch:9200
+    networks:
+      - labnet1
+    depends_on:
+      - lab1_elasticsearch
+
+  # lab1_wazuh:
+  #   image: wazuh/wazuh:4.4.0
+  #   container_name: lab1_wazuh
+  #   depends_on:
+  #     - lab1_elasticsearch
+  #   environment:
+  #     - ELASTICSEARCH_URL=http://lab1_elasticsearch:9200
+  #   networks:
+  #     - labnet1
+
+  lab1_mariadb:
+    image: mariadb:10.6
+    container_name: lab1_mariadb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: dvwa
+      MYSQL_USER: app
+      MYSQL_PASSWORD: vulnerables
+    networks:
+      - labnet1
+
+  lab1_dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: lab1_dvwa
+    depends_on:
+      - lab1_mariadb
+    environment:
+      - MYSQL_HOST=lab1_mariadb
+      - MYSQL_USER=app
+      - MYSQL_PASSWORD=vulnerables
+      - MYSQL_DATABASE=dvwa
+      - PHP_DISPLAY_ERRORS=1
+      - DVWA_SECURITY=low
+    volumes:
+      - ./dvwa_config/lab1.config.inc.php:/var/www/html/config/config.inc.php:ro
+    networks:
+      - labnet1
+
+  lab1_attacker:
+    build:
+      context: ./attacker
+      dockerfile: Dockerfile
+    image: lab_attacker:latest
+    container_name: lab1_attacker
+    command: sleep infinity
+    volumes:
+      - ./attacker/attacks:/opt/attacks:ro
+    networks:
+      - labnet1
+
+  # --- LAB 2 ---
+  lab2_elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    container_name: lab2_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - lab2_esdata:/usr/share/elasticsearch/data
+    networks:
+      - labnet2
+
+  lab2_kibana:
+    image: docker.elastic.co/kibana/kibana:8.8.0
+    container_name: lab2_kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://lab2_elasticsearch:9200
+    networks:
+      - labnet2
+    depends_on:
+      - lab2_elasticsearch
+
+  # lab2_wazuh:
+  #   image: wazuh/wazuh:4.4.0
+  #   container_name: lab2_wazuh
+  #   depends_on:
+  #     - lab2_elasticsearch
+  #   environment:
+  #     - ELASTICSEARCH_URL=http://lab2_elasticsearch:9200
+  #   networks:
+  #     - labnet2
+
+  lab2_mariadb:
+    image: mariadb:10.6
+    container_name: lab2_mariadb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: dvwa
+      MYSQL_USER: app
+      MYSQL_PASSWORD: vulnerables
+    networks:
+      - labnet2
+
+  lab2_dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: lab2_dvwa
+    depends_on:
+      - lab2_mariadb
+    environment:
+      - MYSQL_HOST=lab2_mariadb
+      - MYSQL_USER=app
+      - MYSQL_PASSWORD=vulnerables
+      - MYSQL_DATABASE=dvwa
+      - PHP_DISPLAY_ERRORS=1
+      - DVWA_SECURITY=low
+    networks:
+      - labnet2
+    volumes:
+      - ./dvwa_config/lab2.config.inc.php:/var/www/html/config/config.inc.php:ro
+
+  lab2_attacker:
+    build:
+      context: ./attacker
+      dockerfile: Dockerfile
+    image: lab_attacker:latest
+    container_name: lab2_attacker
+    command: sleep infinity
+    volumes:
+      - ./attacker/attacks:/opt/attacks:ro
+    networks:
+      - labnet2
+
+  # --- LAB 3 ---
+  lab3_elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    container_name: lab3_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - lab3_esdata:/usr/share/elasticsearch/data
+    networks:
+      - labnet3
+
+  lab3_kibana:
+    image: docker.elastic.co/kibana/kibana:8.8.0
+    container_name: lab3_kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://lab3_elasticsearch:9200
+    networks:
+      - labnet3
+    depends_on:
+      - lab3_elasticsearch
+
+  # lab3_wazuh:
+  #   image: wazuh/wazuh:4.4.0
+  #   container_name: lab3_wazuh
+  #   depends_on:
+  #     - lab3_elasticsearch
+  #   environment:
+  #     - ELASTICSEARCH_URL=http://lab3_elasticsearch:9200
+  #   networks:
+  #     - labnet3
+
+  lab3_mariadb:
+    image: mariadb:10.6
+    container_name: lab3_mariadb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: dvwa
+      MYSQL_USER: app
+      MYSQL_PASSWORD: vulnerables
+    networks:
+      - labnet3
+
+  lab3_dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: lab3_dvwa
+    depends_on:
+      - lab3_mariadb
+    environment:
+      - MYSQL_HOST=lab3_mariadb
+      - MYSQL_USER=app
+      - MYSQL_PASSWORD=vulnerables
+      - MYSQL_DATABASE=dvwa
+      - PHP_DISPLAY_ERRORS=1
+      - DVWA_SECURITY=low
+    networks:
+      - labnet3
+    volumes:
+      - ./dvwa_config/lab3.config.inc.php:/var/www/html/config/config.inc.php:ro
+
+  lab3_attacker:
+    build:
+      context: ./attacker
+      dockerfile: Dockerfile
+    image: lab_attacker:latest
+    container_name: lab3_attacker
+    command: sleep infinity
+    volumes:
+      - ./attacker/attacks:/opt/attacks:ro
+    networks:
+      - labnet3
+
+  # --- BASTION / JUMP HOST (connected to all lab networks)
+  lab_bastion:
+    build:
+      context: ./bastion
+      dockerfile: Dockerfile
+    container_name: lab_bastion
+    # expose SSH only on localhost of the host (secure)
+    ports:
+      - "127.0.0.1:2222:22"
+    # attach to all lab networks so it can reach kibana/dvwa of each lab
+    networks:
+      - labnet1
+      - labnet2
+      - labnet3
+    # mount your authorized_keys (put professor public key here)
+    volumes:
+      - ./bastion/authorized_keys:/root/.ssh/authorized_keys:ro
+
+volumes:
+  lab1_esdata:
+  lab2_esdata:
+  lab3_esdata:
+
+networks:
+  labnet1:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.1.0/24
+  labnet2:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.2.0/24
+  labnet3:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.3.0/24
