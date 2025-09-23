@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   nginx_reverse_proxy:
     image: nginx:stable
@@ -14,6 +12,7 @@ services:
       - ./nginx/logs:/var/log/nginx
     networks:
       - labnet_global
+      - ${LAB_NAME}_net
     # Le réseau du lab (externe) sera connecté dynamiquement
     # par create_lab.sh avec `docker network connect`.
 
@@ -26,3 +25,7 @@ services:
 networks:
   labnet_global:
     driver: bridge
+
+  ${LAB_NAME}_net:
+    external:
+      name: ${COMPOSE_PROJECT_NAME}_${LAB_NAME}_net
