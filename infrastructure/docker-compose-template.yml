@@ -19,30 +19,47 @@ services:
         aliases:
           - ${LAB_NAME}_wazuh_manager
 
-  ${LAB_NAME}_wazuh_indexer:
-    image: wazuh/wazuh-indexer:4.4.0
+${LAB_NAME}_wazuh_indexer:
+    image: wazuh/wazuh-indexer:latest
     container_name: ${LAB_NAME}_wazuh_indexer
     hostname: ${LAB_NAME}_wazuh_indexer
     restart: always
     environment:
+      # mémoire Java (ajuste si pas assez de RAM sur l'hôte)
       - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
+
+      # OpenSearch / cluster options
       - cluster.name=${LAB_NAME}-cluster
       - node.name=${LAB_NAME}_wazuh_indexer
       - discovery.type=single-node
-      - DISABLE_SECURITY_PLUGIN=true # <- important pour mode HTTP
+
+      # Pour dépannage rapide : désactive le plugin de sécurité (force HTTP).
+      # -> utile pour debug et pour que dashboard puisse parler en HTTP.
+      # Retire ou passe à "false" en production si tu veux la sécurité TLS/auth.
+      - DISABLE_SECURITY_PLUGIN=true
+
+      # JAVA home fourni par l'image (utilisé par securityadmin et le bootstrap)
       - OPENSEARCH_JAVA_HOME=/usr/share/wazuh-indexer/jdk
       - JAVA_HOME=/usr/share/wazuh-indexer/jdk
+
+      # (optionnel) si tu montes des configs custom, précise le chemin ici ; sinon laisse vide.
+      # - OPENSEARCH_PATH_CONF=/usr/share/wazuh-indexer/config
+
     ulimits:
       memlock:
         soft: -1
         hard: -1
+    # Persistance des données (ne pas monter le répertoire image /config qui pourrait masquer les configs de l'image)
     volumes:
       - ./data/${LAB_NAME}/wazuh_indexer:/var/lib/wazuh-indexer
+      # si tu veux persister certificats/config manuellemnt, monter explicitement un dossier:
+      # - ./data/${LAB_NAME}/wazuh_indexer_config:/usr/share/wazuh-indexer/config:ro
     networks:
       ${LAB_NAME}_net:
         aliases:
           - ${LAB_NAME}_wazuh_indexer
-          - wazuh.indexer # alias générique attendu par manager & dashboard
+          - wazuh.indexer
+
 
   ${LAB_NAME}_wazuh_dashboard:
     image: wazuh/wazuh-dashboard:4.4.0
