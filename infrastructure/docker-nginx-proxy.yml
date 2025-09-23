@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  nginx_reverse_proxy:
+    image: nginx:stable
+    container_name: nginx_reverse_proxy
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      # Dossier où create_lab.sh dépose les confs générées
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      # Log nginx pour debug
+      - ./nginx/logs:/var/log/nginx
+    networks:
+      # Proxy doit voir les réseaux des labs
+      - labnet_global
+
+networks:
+  labnet_global:
+    driver: bridge

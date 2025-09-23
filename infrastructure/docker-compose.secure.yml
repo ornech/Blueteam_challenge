@@ -14,7 +14,7 @@ services:
     volumes:
       - ./data/${LAB_NAME}/wazuh_manager:/var/ossec/data
     networks:
-      - ${LAB_NAME}_net
+      - "${LAB_NAME}_net"
 
   ${LAB_NAME}_wazuh_indexer:
     image: wazuh/wazuh-indexer:4.4.0
@@ -32,7 +32,7 @@ services:
     volumes:
       - ./data/${LAB_NAME}/wazuh_indexer:/var/lib/wazuh-indexer
     networks:
-      - ${LAB_NAME}_net
+      - "${LAB_NAME}_net"
 
   ${LAB_NAME}_wazuh_dashboard:
     image: wazuh/wazuh-dashboard:4.4.0
@@ -45,7 +45,7 @@ services:
     ports:
       - "${WAZUH_PORT_5601}:5601"
     networks:
-      - ${LAB_NAME}_net
+      - "${LAB_NAME}_net"
     depends_on:
       - ${LAB_NAME}_wazuh_manager
       - ${LAB_NAME}_wazuh_indexer
@@ -60,7 +60,7 @@ services:
       MYSQL_USER: app
       MYSQL_PASSWORD: vulnerables
     networks:
-      - ${LAB_NAME}_net
+      - "${LAB_NAME}_net"
 
   ${LAB_NAME}_dvwa:
     image: vulnerables/web-dvwa:latest
@@ -75,7 +75,7 @@ services:
       - PHP_DISPLAY_ERRORS=1
       - DVWA_SECURITY=low
     networks:
-      - ${LAB_NAME}_net
+      - "${LAB_NAME}_net"
 
   ${LAB_NAME}_attacker:
     build:
@@ -87,11 +87,11 @@ services:
     volumes:
       - ./attacker/attacks:/opt/attacks:ro
     networks:
-      - ${LAB_NAME}_net
+      - "${LAB_NAME}_net"
 
 networks:
   ${LAB_NAME}_net:
     driver: bridge
     ipam:
       config:
-        - subnet: ${LAB_SUBNET}
+        - subnet: "${LAB_SUBNET}"
