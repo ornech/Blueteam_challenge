@@ -118,12 +118,12 @@ docker network connect "${FULL_NET_NAME}" $PROXY_CONTAINER 2>/dev/null || true
 # --- ENSURE DEFAULT.CONF EXISTS ---
 DEFAULT_CONF="$NGINX_CONF_DIR/default.conf"
 if [ ! -f "$DEFAULT_CONF" ]; then
-    echo "DEBUG: génération d'un default.conf"
+    echo "DEBUG: génération d'un default.conf neutre"
     cat > "$DEFAULT_CONF" <<EOF
 server {
     listen 80 default_server;
     server_name _;
-    return 404;
+    return 444;
 }
 EOF
 fi
