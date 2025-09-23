@@ -14,8 +14,14 @@ services:
       - ./nginx/logs:/var/log/nginx
     networks:
       - labnet_global
-    # Pas d’attachement à un réseau externe ici :
-    # create_lab.sh connectera dynamiquement le conteneur au réseau du lab.
+    # Le réseau du lab (externe) sera connecté dynamiquement
+    # par create_lab.sh avec `docker network connect`.
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
 
 networks:
   labnet_global:
