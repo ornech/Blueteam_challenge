@@ -118,12 +118,12 @@ docker network connect "${FULL_NET_NAME}" $PROXY_CONTAINER 2>/dev/null || true
 # --- ENSURE DEFAULT.CONF EXISTS ---
 DEFAULT_CONF="$NGINX_CONF_DIR/default.conf"
 if [ ! -f "$DEFAULT_CONF" ]; then
-    echo "DEBUG: génération d'un default.conf neutre"
+    echo "DEBUG: génération d'un default.conf"
     cat > "$DEFAULT_CONF" <<EOF
 server {
     listen 80 default_server;
     server_name _;
-    return 444;
+    return 404;
 }
 EOF
 fi
@@ -136,26 +136,38 @@ fi
 
 # --- NGINX CONF FOR THIS LAB ---
 cat > "$NGINX_FILE" <<EOF
+
 server {
     server_name dvwa.${LAB_NAME}.local;
 
     resolver 127.0.0.11 valid=30s;
 
     location / {
-        proxy_pass http://${LAB_NAME}_dvwa:80;
+        proxy_pass http://${LAB_NAME}_dvwa:80/;
+        proxy_set_header Host localhost;
+        proxy_set_header X-Real-IP \$remote_addr;
     }
 }
 
 server {
+    listen 80;
     server_name wazuh.${LAB_NAME}.local;
 
     resolver 127.0.0.11 valid=30s;
 
     location / {
-        proxy_pass http://${LAB_NAME}_wazuh_dashboard:5601;
+        proxy_pass https://${LAB_NAME}_wazuh_dashboard:5601;
+        proxy_ssl_verify off;         # certificat auto-signé ignoré
+        proxy_set_header Host localhost;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 }
+
+
 EOF
+
 echo "[+] Config Nginx générée : $NGINX_FILE"
 
 # --- RELOAD NGINX ---

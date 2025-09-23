@@ -5,6 +5,7 @@ services:
     image: wazuh/wazuh-manager:4.4.0
     container_name: ${LAB_NAME}_wazuh_manager
     hostname: ${LAB_NAME}_wazuh_manager
+    restart: always
     environment:
       - WAZUH_CLUSTER_KEY=ClusterKey123
     ports:
@@ -14,12 +15,15 @@ services:
     volumes:
       - ./data/${LAB_NAME}/wazuh_manager:/var/ossec/data
     networks:
-      - "${LAB_NAME}_net"
+      ${LAB_NAME}_net:
+        aliases:
+          - ${LAB_NAME}_wazuh_manager
 
   ${LAB_NAME}_wazuh_indexer:
     image: wazuh/wazuh-indexer:4.4.0
     container_name: ${LAB_NAME}_wazuh_indexer
     hostname: ${LAB_NAME}_wazuh_indexer
+    restart: always
     environment:
       - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
       - cluster.name=${LAB_NAME}-cluster
@@ -32,20 +36,26 @@ services:
     volumes:
       - ./data/${LAB_NAME}/wazuh_indexer:/var/lib/wazuh-indexer
     networks:
-      - "${LAB_NAME}_net"
+      ${LAB_NAME}_net:
+        aliases:
+          - ${LAB_NAME}_wazuh_indexer
 
   ${LAB_NAME}_wazuh_dashboard:
     image: wazuh/wazuh-dashboard:4.4.0
     container_name: ${LAB_NAME}_wazuh_dashboard
     hostname: ${LAB_NAME}_wazuh_dashboard
+    restart: always
     environment:
-      - WAZUH_API_URL=https://${LAB_NAME}_wazuh_manager
+      # Wazuh Dashboard talks to the Wazuh API (manager) on HTTPS port 55000
+      - WAZUH_API_URL=https://${LAB_NAME}_wazuh_manager:55000
       - WAZUH_API_USER=admin
       - WAZUH_API_PASSWORD=SecretPass123
     ports:
-      - "${WAZUH_PORT_5601}:5601"
+      - "${WAZUH_PORT_5601}:5601" # force mapping to host port (ex: 5601)
     networks:
-      - "${LAB_NAME}_net"
+      ${LAB_NAME}_net:
+        aliases:
+          - ${LAB_NAME}_wazuh_dashboard
     depends_on:
       - ${LAB_NAME}_wazuh_manager
       - ${LAB_NAME}_wazuh_indexer
@@ -59,12 +69,17 @@ services:
       MYSQL_DATABASE: dvwa
       MYSQL_USER: app
       MYSQL_PASSWORD: vulnerables
+    volumes:
+      - ./data/${LAB_NAME}/mariadb:/var/lib/mysql
     networks:
-      - "${LAB_NAME}_net"
+      ${LAB_NAME}_net:
+        aliases:
+          - ${LAB_NAME}_mariadb
 
   ${LAB_NAME}_dvwa:
     image: vulnerables/web-dvwa:latest
     container_name: ${LAB_NAME}_dvwa
+    restart: always
     depends_on:
       - ${LAB_NAME}_mariadb
     environment:
@@ -75,7 +90,9 @@ services:
       - PHP_DISPLAY_ERRORS=1
       - DVWA_SECURITY=low
     networks:
-      - "${LAB_NAME}_net"
+      ${LAB_NAME}_net:
+        aliases:
+          - ${LAB_NAME}_dvwa
 
   ${LAB_NAME}_attacker:
     build:
@@ -83,11 +100,14 @@ services:
       dockerfile: Dockerfile
     image: lab_attacker:latest
     container_name: ${LAB_NAME}_attacker
+    restart: "no"
     command: sleep infinity
     volumes:
       - ./attacker/attacks:/opt/attacks:ro
     networks:
-      - "${LAB_NAME}_net"
+      ${LAB_NAME}_net:
+        aliases:
+          - ${LAB_NAME}_attacker
 
 networks:
   ${LAB_NAME}_net:

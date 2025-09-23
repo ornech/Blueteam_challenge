@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   nginx_reverse_proxy:
     image: nginx:stable
@@ -13,9 +11,11 @@ services:
       # Log nginx pour debug
       - ./nginx/logs:/var/log/nginx
     networks:
-      # Proxy doit voir les réseaux des labs
       - labnet_global
+      - infrastructure_lab1_net   # <--- connexion directe au réseau du lab1
 
 networks:
   labnet_global:
     driver: bridge
+  infrastructure_lab1_net:
+    external: true   # <--- très important pour rejoindre un réseau déjà créé
