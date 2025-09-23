@@ -26,6 +26,21 @@ mkdir -p "$ENV_DIR" "$NGINX_CONF_DIR" \
          "$DATA_DIR/${LAB_NAME}/wazuh_manager" \
          "$DATA_DIR/${LAB_NAME}/wazuh_indexer"
 
+# --- ASSURE LE RÉSEAU EXTERNE POUR LE PROXY (création si manquant) ---
+PROJECT_NAME=$(basename "$SCRIPT_DIR")
+FULL_NET_NAME="${PROJECT_NAME}_${LAB_NAME}_net"
+# calcul du subnet (même logique que plus bas dans le script)
+LAB_NUM=$(echo "$LAB_NAME" | grep -o '[0-9]*$' || echo "1")
+BASE_SUBNET=30
+LAB_SUBNET="172.${BASE_SUBNET}.${LAB_NUM}.0/24"
+
+# Si le réseau n'existe pas, le créer avec le subnet calculé
+if ! docker network inspect "$FULL_NET_NAME" >/dev/null 2>&1; then
+  echo "DEBUG: réseau $FULL_NET_NAME absent → création automatique (subnet $LAB_SUBNET)"
+  docker network create --driver bridge --subnet "$LAB_SUBNET" "$FULL_NET_NAME" || true
+fi
+
+
 # --- ENSURE PROXY IS RUNNING ---
 echo "[*] Vérification du conteneur proxy $PROXY_CONTAINER..."
 if ! docker ps -a --format '{{.Names}}' | grep -q "^${PROXY_CONTAINER}\$"; then
