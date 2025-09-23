@@ -190,8 +190,9 @@ EOF
 fi
 
 # --- NGINX conf pour ce lab ---
+# --- NGINX conf pour ce lab ---
 log_info "Génération de la config Nginx pour ${LAB_NAME} → $NGINX_FILE"
-cat > "$NGINX_FILE" <<EOF
+cat > "$NGINX_FILE" <<'EOF'
 
 server {
     listen 80;
@@ -203,7 +204,7 @@ server {
     location / {
         proxy_pass http://${LAB_NAME}_dvwa:80;
         proxy_http_version 1.1;
-        proxy_set_header Host localhost;               
+        proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -221,7 +222,7 @@ server {
         proxy_ssl_server_name on;
         proxy_ssl_verify off;                       # self-signed dans le lab
         proxy_http_version 1.1;
-        proxy_set_header Host localhost;                
+        proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -232,9 +233,9 @@ server {
     }
 }
 
-
 EOF
 log_ok "Config Nginx générée : $NGINX_FILE"
+              
 
 # --- RELOAD NGINX in proxy container (if running) ---
 log_info "Reload de Nginx dans le conteneur ${PROXY_CONTAINER} (si actif)..."
