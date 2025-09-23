@@ -30,6 +30,8 @@ services:
       - node.name=${LAB_NAME}_wazuh_indexer
       - discovery.type=single-node
       - DISABLE_SECURITY_PLUGIN=true # <- important pour mode HTTP
+      - OPENSEARCH_JAVA_HOME=/usr/share/wazuh-indexer/jdk
+      - JAVA_HOME=/usr/share/wazuh-indexer/jdk
     ulimits:
       memlock:
         soft: -1
