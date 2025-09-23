@@ -39,6 +39,7 @@ services:
       ${LAB_NAME}_net:
         aliases:
           - ${LAB_NAME}_wazuh_indexer
+          - wazuh.indexer # alias générique attendu par manager & dashboard
 
   ${LAB_NAME}_wazuh_dashboard:
     image: wazuh/wazuh-dashboard:4.4.0
@@ -50,6 +51,8 @@ services:
       - WAZUH_API_URL=https://${LAB_NAME}_wazuh_manager:55000
       - WAZUH_API_USER=admin
       - WAZUH_API_PASSWORD=SecretPass123
+      - OPENSEARCH_HOSTS=http://${LAB_NAME}_wazuh_indexer:9200 # ← forcer HTTP
+
     ports:
       - "${WAZUH_PORT_5601}:5601" # force mapping to host port (ex: 5601)
     networks:
