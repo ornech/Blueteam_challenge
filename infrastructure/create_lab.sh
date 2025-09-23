@@ -29,8 +29,8 @@ COMPOSE_FILE_TEMPLATE="$SCRIPT_DIR/docker-compose-{{LAB}}.yml"  # placeholder fo
 # Allow override of the compose project name if desired (avoid unwanted prefixes).
 # By default we keep the folder name (e.g., "infrastructure") to preserve legacy behaviour,
 # but you can export COMPOSE_PROJECT_NAME before calling the script to change it.
-COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-$(basename "$SCRIPT_DIR")}"
 
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-blueteam}"
 # --- ARG CHECK ---
 if [ $# -ne 1 ]; then
     echo "Usage: $0 <lab_name> (ex: lab1)"

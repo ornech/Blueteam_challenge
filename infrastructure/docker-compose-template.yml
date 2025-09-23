@@ -134,5 +134,5 @@ services:
 
 networks:
   ${LAB_NAME}_net:
-    external:
-      name: ${COMPOSE_PROJECT_NAME}_${LAB_NAME}_net
+    name: ${COMPOSE_PROJECT_NAME}_${LAB_NAME}_net
+    external: true

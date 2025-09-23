@@ -23,9 +23,6 @@ services:
       retries: 10
 
 networks:
-  labnet_global:
-    driver: bridge
-
   ${LAB_NAME}_net:
-    external:
-      name: ${COMPOSE_PROJECT_NAME}_${LAB_NAME}_net
+    name: ${COMPOSE_PROJECT_NAME}_${LAB_NAME}_net
+    external: true
