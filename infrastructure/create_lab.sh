@@ -36,11 +36,30 @@ mkdir -p "$ENV_DIR" "$NGINX_CONF_DIR" \
 
 log_ok "Dossiers prêts : $ENV_DIR, $DATA_DIR/${LAB_NAME}/..."
 
+fix_perms_certs() {
+    local LAB_NAME="$1"
+    local CERTS_DIR="$SCRIPT_DIR/certs/$LAB_NAME"
+
+    if [ -d "$CERTS_DIR" ]; then
+        log_info "Correction des permissions des certificats pour $LAB_NAME..."
+        sudo chown -R 1000:1000 "$CERTS_DIR"
+        sudo chmod 755 "$CERTS_DIR"
+        sudo chmod 644 "$CERTS_DIR"/*.pem "$CERTS_DIR"/*.key || true
+        log_ok "Permissions corrigées sur $CERTS_DIR"
+    else
+        log_warn "Pas de dossier de certificats pour $LAB_NAME ($CERTS_DIR absent)"
+    fi
+}
+
+
+
 # -------- Run workflow --------
 ensure_lab_network "$LAB_NAME"
+generate_certs "$LAB_NAME"
 generate_env "$LAB_NAME"
 generate_compose "$LAB_NAME"
 generate_nginx_conf "$LAB_NAME"
+fix_perms_certs "$LAB_NAME"
 
 # -------- Deploy lab --------
 log_info "Déploiement du lab ${LAB_NAME}..."
