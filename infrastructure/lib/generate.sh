@@ -29,7 +29,7 @@ generate_compose() {
     local COMPOSE_FILE="$SCRIPT_DIR/docker-compose-${LAB_NAME}.yml"
 
     log_info "Génération docker-compose pour $LAB_NAME..."
-    export LAB_NAME
+    export LAB_NAME COMPOSE_PROJECT_NAME
     envsubst < "$COMPOSE_TEMPLATE" > "$COMPOSE_FILE"
     log_ok "docker-compose généré : $COMPOSE_FILE"
 }
