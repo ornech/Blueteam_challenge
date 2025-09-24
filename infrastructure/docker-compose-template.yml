@@ -6,12 +6,16 @@ services:
     restart: always
     environment:
       - WAZUH_CLUSTER_KEY=ClusterKey123
+      - INDEXER_URL=https://${LAB_NAME}_wazuh_indexer:9200
+      - INDEXER_USERNAME=admin
+      - INDEXER_PASSWORD=admin
     ports:
       - "${WAZUH_PORT_1514}:1514/udp"
       - "${WAZUH_PORT_1515}:1515"
       - "${WAZUH_PORT_55000}:55000"
     volumes:
       - ./data/${LAB_NAME}/wazuh_manager:/var/ossec/data
+      - ./certs/${LAB_NAME}:/etc/wazuh-manager/certs:ro
     networks:
       ${LAB_NAME}_net:
         aliases:
@@ -32,21 +36,28 @@ services:
       - cluster.name=${LAB_NAME}-cluster
       - node.name=${LAB_NAME}_wazuh_indexer
       - discovery.type=single-node
-      - DISABLE_SECURITY_PLUGIN=true
-      - plugins.security.disabled=true
+      # SSL settings
+      - opensearch.ssl.http.enabled=true
+      - opensearch.ssl.http.pemcert_filepath=/etc/wazuh-indexer/certs/admin.pem
+      - opensearch.ssl.http.pemkey_filepath=/etc/wazuh-indexer/certs/admin-key.pem
+      - opensearch.ssl.http.pemtrustedcas_filepath=/etc/wazuh-indexer/certs/root-ca.pem
+      - opensearch.ssl.transport.pemcert_filepath=/etc/wazuh-indexer/certs/admin.pem
+      - opensearch.ssl.transport.pemkey_filepath=/etc/wazuh-indexer/certs/admin-key.pem
+      - opensearch.ssl.transport.pemtrustedcas_filepath=/etc/wazuh-indexer/certs/root-ca.pem
     ulimits:
       memlock:
         soft: -1
         hard: -1
     volumes:
       - ./data/${LAB_NAME}/wazuh_indexer:/var/lib/wazuh-indexer
+      - ./certs/${LAB_NAME}:/etc/wazuh-indexer/certs:ro
     networks:
       ${LAB_NAME}_net:
         aliases:
           - ${LAB_NAME}_wazuh_indexer
           - wazuh.indexer
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      test: ["CMD", "curl", "-k", "https://localhost:9200/_cluster/health"]
       interval: 20s
       timeout: 5s
       retries: 10
@@ -57,13 +68,17 @@ services:
     hostname: ${LAB_NAME}_wazuh_dashboard
     restart: always
     environment:
-      - WAZUH_API_URL=http://${LAB_NAME}_wazuh_manager:55000
+      - WAZUH_API_URL=https://${LAB_NAME}_wazuh_manager:55000
       - WAZUH_API_USER=admin
       - WAZUH_API_PASSWORD=SecretPass123
-      - OPENSEARCH_HOSTS=http://${LAB_NAME}_wazuh_indexer:9200
-      - DASHBOARD_SECURITY_ENABLED=false
+      - OPENSEARCH_HOSTS=https://${LAB_NAME}_wazuh_indexer:9200
+      # SSL for dashboard
+      - OPENSEARCH_SSL_CERTIFICATEAUTHORITIES=/etc/wazuh-dashboard/certs/root-ca.pem
+      - OPENSEARCH_SSL_VERIFICATIONMODE=certificate
     ports:
-      - "${WAZUH_PORT_5601}:5601" # <--- exposé vers l’hôte
+      - "${WAZUH_PORT_5601}:5601"
+    volumes:
+      - ./certs/${LAB_NAME}:/etc/wazuh-dashboard/certs:ro
     networks:
       ${LAB_NAME}_net:
         aliases:
@@ -74,7 +89,7 @@ services:
       ${LAB_NAME}_wazuh_indexer:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5601"]
+      test: ["CMD", "curl", "-k", "https://localhost:5601"]
       interval: 30s
       timeout: 10s
       retries: 10
@@ -122,8 +137,6 @@ services:
       - MYSQL_DATABASE=dvwa
       - PHP_DISPLAY_ERRORS=1
       - DVWA_SECURITY=low
-    ports:
-      - "${DVWA_PORT}:80" # <--- exposé vers l’hôte (calculé dans .env)
     networks:
       ${LAB_NAME}_net:
         aliases:

@@ -61,3 +61,41 @@ server {
 EOF
     log_ok "Nginx conf générée : $NGINX_FILE"
 }
+
+generate_certs() {
+    local LAB_NAME="$1"
+    local CERTS_DIR="$SCRIPT_DIR/certs/${LAB_NAME}"
+    local CERTS_YML="$CERTS_DIR/certs.yml"
+
+    if [ -f "$CERTS_DIR/root-ca.pem" ]; then
+        log_ok "Certificats déjà présents pour $LAB_NAME → on les réutilise"
+        return
+    fi
+
+    log_info "Génération des certificats pour $LAB_NAME..."
+
+    # Créer un certs.yml minimal si absent
+    if [ ! -f "$CERTS_YML" ]; then
+        cat > "$CERTS_YML" <<EOF
+nodes:
+  - name: ${LAB_NAME}_wazuh_indexer
+    dns:
+      - ${LAB_NAME}_wazuh_indexer
+      - localhost
+EOF
+        log_info "Fichier certs.yml généré : $CERTS_YML"
+    fi
+
+    # Lancer le conteneur générateur
+    docker run --rm \
+        -v "$CERTS_DIR:/certificates" \
+        -v "$CERTS_YML:/config/certs.yml" \
+        wazuh-indexer-certs >/dev/null 2>&1
+
+    if [ -f "$CERTS_DIR/root-ca.pem" ]; then
+        log_ok "Certificats générés avec succès dans $CERTS_DIR"
+    else
+        log_error "Échec de génération des certificats pour $LAB_NAME"
+        exit 1
+    fi
+}

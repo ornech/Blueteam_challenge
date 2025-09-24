@@ -28,10 +28,12 @@ LAB_NAME="$1"
 
 # -------- Prepare directories --------
 log_info "Création des dossiers nécessaires..."
-mkdir -p "$ENV_DIR" \
+mkdir -p "$ENV_DIR" "$NGINX_CONF_DIR" \
          "$DATA_DIR/${LAB_NAME}/wazuh_manager" \
          "$DATA_DIR/${LAB_NAME}/wazuh_indexer" \
-         "$DATA_DIR/${LAB_NAME}/mariadb"
+         "$DATA_DIR/${LAB_NAME}/mariadb" \
+         "$SCRIPT_DIR/certs/${LAB_NAME}"
+
 log_ok "Dossiers prêts : $ENV_DIR, $DATA_DIR/${LAB_NAME}/..."
 
 # -------- Run workflow --------
