@@ -22,7 +22,7 @@ services:
       timeout: 5s
       retries: 10
   ${LAB_NAME}_wazuh_indexer:
-    image: wazuh/wazuh-indexer:4.13.0-oss # version sans plugin de sécurité
+    image: wazuh/wazuh-indexer:4.13.0
     container_name: ${LAB_NAME}_wazuh_indexer
     hostname: ${LAB_NAME}_wazuh_indexer
     restart: always
@@ -31,6 +31,8 @@ services:
       - cluster.name=${LAB_NAME}-cluster
       - node.name=${LAB_NAME}_wazuh_indexer
       - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - plugins.security.disabled=true # <--- forcer la désactivation
     ulimits:
       memlock:
         soft: -1
@@ -58,7 +60,7 @@ services:
       - WAZUH_API_USER=admin
       - WAZUH_API_PASSWORD=SecretPass123
       - OPENSEARCH_HOSTS=http://${LAB_NAME}_wazuh_indexer:9200
-      - DASHBOARD_SECURITY_ENABLED=false
+      - DASHBOARD_SECURITY_ENABLED=false # <--- mode sans certs
     ports:
       - "${WAZUH_PORT_5601}:5601"
     networks:
