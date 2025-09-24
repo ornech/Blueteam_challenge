@@ -21,20 +21,16 @@ services:
       interval: 20s
       timeout: 5s
       retries: 10
-
   ${LAB_NAME}_wazuh_indexer:
-    image: wazuh/wazuh-indexer:4.13.0
+    image: wazuh/wazuh-indexer:4.13.0-oss # version sans plugin de sécurité
     container_name: ${LAB_NAME}_wazuh_indexer
     hostname: ${LAB_NAME}_wazuh_indexer
     restart: always
     environment:
-      - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m" # réduit pour VM légères
       - cluster.name=${LAB_NAME}-cluster
       - node.name=${LAB_NAME}_wazuh_indexer
       - discovery.type=single-node
-      - DISABLE_SECURITY_PLUGIN=true
-      - OPENSEARCH_JAVA_HOME=/usr/share/wazuh-indexer/jdk
-      - JAVA_HOME=/usr/share/wazuh-indexer/jdk
     ulimits:
       memlock:
         soft: -1
@@ -58,10 +54,11 @@ services:
     hostname: ${LAB_NAME}_wazuh_dashboard
     restart: always
     environment:
-      - WAZUH_API_URL=https://${LAB_NAME}_wazuh_manager:55000
+      - WAZUH_API_URL=http://${LAB_NAME}_wazuh_manager:55000
       - WAZUH_API_USER=admin
       - WAZUH_API_PASSWORD=SecretPass123
       - OPENSEARCH_HOSTS=http://${LAB_NAME}_wazuh_indexer:9200
+      - DASHBOARD_SECURITY_ENABLED=false
     ports:
       - "${WAZUH_PORT_5601}:5601"
     networks:
