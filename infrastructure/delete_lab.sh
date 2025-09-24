@@ -1,58 +1,88 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# delete_lab.sh - Supprime un labo et ses ressources (conteneurs, volumes, fichiers, conf Nginx)
 
-# --- CONFIG ---
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMPOSE_FILE="$SCRIPT_DIR/docker-compose-template.yml"
-ENV_DIR="$SCRIPT_DIR/envs"
-DATA_DIR="$SCRIPT_DIR/data"
-NGINX_CONF_DIR="$SCRIPT_DIR/nginx/conf.d"
-PROXY_CONTAINER="nginx_reverse_proxy"
+# -------- Logging utils --------
+CSI='\033['
+RESET="${CSI}0m"
+GREEN="${CSI}32m"
+YELLOW="${CSI}33m"
+RED="${CSI}31m"
+BLUE="${CSI}34m"
 
-# --- ARG CHECK ---
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <lab_name> (ex: blueteam1)"
-    exit 1
+log_info(){ echo -e "${BLUE}[INFO]${RESET}  $*"; }
+log_ok(){   echo -e "${GREEN}[ OK ]${RESET}  $*"; }
+log_warn(){ echo -e "${YELLOW}[WARN]${RESET}  $*"; }
+log_error(){ echo -e "${RED}[ERR ]${RESET}  $*" >&2; }
+
+# -------- Args --------
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 <lab_name> [--purge-network]"
+  exit 1
 fi
 
 LAB_NAME="$1"
+PURGE_NET="${2:-}"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_DIR="$SCRIPT_DIR/envs"
+DATA_DIR="$SCRIPT_DIR/data"
+NGINX_CONF_DIR="$SCRIPT_DIR/nginx/conf.d"
+
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-blueteam}"
+COMPOSE_FILE="$SCRIPT_DIR/docker-compose-${LAB_NAME}.yml"
 ENV_FILE="${ENV_DIR}/${LAB_NAME}.env"
 NGINX_FILE="${NGINX_CONF_DIR}/${LAB_NAME}.conf"
-DATA_PATH="${DATA_DIR}/${LAB_NAME}"
+FULL_NET_NAME="${COMPOSE_PROJECT_NAME}_${LAB_NAME}_net"
 
-# --- STOP & REMOVE LAB ---
-if [ -f "$ENV_FILE" ]; then
-    echo "[*] Arrêt et suppression des conteneurs du lab ${LAB_NAME}..."
-    docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down -v
+# -------- Delete containers --------
+log_info "Arrêt et suppression des conteneurs pour $LAB_NAME..."
+containers=$(docker ps -a --format '{{.Names}}' | grep "^${LAB_NAME}_" || true)
+if [ -n "$containers" ]; then
+  docker rm -f $containers >/dev/null 2>&1 || true
+  log_ok "Conteneurs supprimés : $containers"
 else
-    echo "[!] Aucun fichier .env trouvé pour ${LAB_NAME}, on tente un down direct..."
-    docker compose -f "$COMPOSE_FILE" down -v || true
+  log_info "Aucun conteneur trouvé pour $LAB_NAME."
 fi
 
-# --- REMOVE NGINX CONF ---
-if [ -f "$NGINX_FILE" ]; then
-    rm -f "$NGINX_FILE"
-    echo "[+] Config Nginx supprimée : $NGINX_FILE"
-
-    # Reload Nginx
-    if docker ps --format '{{.Names}}' | grep -q "^${PROXY_CONTAINER}\$"; then
-        docker exec $PROXY_CONTAINER nginx -s reload
-        echo "[✔] Nginx rechargé avec succès"
-    else
-        echo "[!] Le conteneur $PROXY_CONTAINER n'existe pas ou n'est pas démarré"
-    fi
+# -------- Delete volumes --------
+log_info "Suppression des volumes liés à $LAB_NAME..."
+volumes=$(docker volume ls --format '{{.Name}}' | grep "^${LAB_NAME}_" || true)
+if [ -n "$volumes" ]; then
+  docker volume rm $volumes >/dev/null 2>&1 || true
+  log_ok "Volumes supprimés : $volumes"
+else
+  log_info "Aucun volume trouvé pour $LAB_NAME."
 fi
 
-# --- REMOVE DATA ---
-if [ -d "$DATA_PATH" ]; then
-    echo "[*] Suppression des données persistantes de ${LAB_NAME}..."
-    rm -rf "$DATA_PATH"
+# -------- Delete files --------
+if [ -f "$COMPOSE_FILE" ]; then
+  rm -f "$COMPOSE_FILE"
+  log_ok "Fichier docker-compose supprimé : $COMPOSE_FILE"
 fi
-
-# --- REMOVE ENV FILE ---
 if [ -f "$ENV_FILE" ]; then
-    rm -f "$ENV_FILE"
-    echo "[+] Fichier .env supprimé : $ENV_FILE"
+  rm -f "$ENV_FILE"
+  log_ok "Fichier env supprimé : $ENV_FILE"
+fi
+if [ -d "$DATA_DIR/$LAB_NAME" ]; then
+  rm -rf "$DATA_DIR/$LAB_NAME"
+  log_ok "Répertoire data supprimé : $DATA_DIR/$LAB_NAME"
+fi
+if [ -f "$NGINX_FILE" ]; then
+  rm -f "$NGINX_FILE"
+  log_ok "Config Nginx supprimée : $NGINX_FILE"
 fi
 
-echo "[✔] Lab ${LAB_NAME} supprimé avec succès !"
+# -------- Purge network (optional) --------
+if [ "$PURGE_NET" == "--purge-network" ]; then
+  if docker network inspect "$FULL_NET_NAME" >/dev/null 2>&1; then
+    docker network rm "$FULL_NET_NAME" >/dev/null 2>&1 || true
+    log_ok "Réseau supprimé : $FULL_NET_NAME"
+  else
+    log_info "Réseau $FULL_NET_NAME non trouvé (déjà supprimé ?)."
+  fi
+else
+  log_info "Réseau $FULL_NET_NAME conservé (utiliser --purge-network pour le supprimer)."
+fi
+
+log_ok "Lab $LAB_NAME supprimé."

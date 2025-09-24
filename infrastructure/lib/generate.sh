@@ -36,10 +36,10 @@ generate_compose() {
 
 generate_nginx_conf() {
     local LAB_NAME="$1"
-    local NGINX_FILE="${NGINX_CONF_DIR}/${LAB_NAME}.conf"
+    local NGINX_FILE="/etc/nginx/conf.d/${LAB_NAME}.conf"   # <--- direct host
 
     log_info "Génération config Nginx pour $LAB_NAME..."
-    cat > "$NGINX_FILE" <<EOF
+    sudo tee "$NGINX_FILE" >/dev/null <<EOF
 server {
     listen 80;
     server_name dvwa.${LAB_NAME}.local;
