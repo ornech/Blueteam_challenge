@@ -50,7 +50,7 @@ services:
         hard: -1
     volumes:
       - ./data/${LAB_NAME}/wazuh_indexer:/var/lib/wazuh-indexer
-      - ./certs/${LAB_NAME}:/etc/wazuh-indexer/certs:ro
+      - ./certs/${LAB_NAME}:/etc/wazuh-indexer/certs:rw
     networks:
       ${LAB_NAME}_net:
         aliases:

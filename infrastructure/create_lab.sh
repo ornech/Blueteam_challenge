@@ -44,8 +44,8 @@ fix_perms_certs() {
         log_info "Correction des permissions des certificats pour $LAB_NAME..."
         sudo chown -R 1000:1000 "$CERTS_DIR"
         sudo chmod 755 "$CERTS_DIR"
-        sudo chmod 644 "$CERTS_DIR"/*.pem "$CERTS_DIR"/*.key || true    
-        sudo chmown -R 1000:1000 "$CERTS_DIR"/*.pem "$CERTS_DIR"/*.key || true 
+        #sudo chmod 644 "$CERTS_DIR"/*.pem "$CERTS_DIR"/*.key || true   
+        sudo chmod 644 "$CERTS_DIR"/*.pem "$CERTS_DIR"/*.key "$CERTS_DIR"/certs.yml || true 
         log_ok "Permissions corrigées sur $CERTS_DIR"
     else
         log_warn "Pas de dossier de certificats pour $LAB_NAME ($CERTS_DIR absent)"
