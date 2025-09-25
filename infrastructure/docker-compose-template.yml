@@ -51,8 +51,7 @@ services:
     volumes:
       - ./data/${LAB_NAME}/wazuh_indexer:/var/lib/wazuh-indexer
       - ./certs/${LAB_NAME}:/etc/wazuh-indexer/certs:ro
-
-
+      - ./opensearch-disable-security.yml:/usr/share/wazuh-indexer/opensearch.yml:ro
 
     networks:
       ${LAB_NAME}_net:
