@@ -36,26 +36,31 @@ services:
       - cluster.name=${LAB_NAME}-cluster
       - node.name=${LAB_NAME}_wazuh_indexer
       - discovery.type=single-node
-      # SSL settings (chemins corrigés -> /usr/share/wazuh-indexer/certs)
-      - opensearch.ssl.http.enabled=true
-      - opensearch.ssl.http.pemcert_filepath=/usr/share/wazuh-indexer/certs/admin.pem
-      - opensearch.ssl.http.pemkey_filepath=/usr/share/wazuh-indexer/certs/admin-key.pem
-      - opensearch.ssl.http.pemtrustedcas_filepath=/usr/share/wazuh-indexer/certs/root-ca.pem
-      - opensearch.ssl.transport.pemcert_filepath=/usr/share/wazuh-indexer/certs/admin.pem
-      - opensearch.ssl.transport.pemkey_filepath=/usr/share/wazuh-indexer/certs/admin-key.pem
-      - opensearch.ssl.transport.pemtrustedcas_filepath=/usr/share/wazuh-indexer/certs/root-ca.pem
+    # 👉 Forcer explicitement les chemins de certs avec des -E (lus par OpenSearch)
+    command:
+      - opensearch-docker
+      - -E
+      - plugins.security.ssl.http.enabled=true
+      - -E
+      - plugins.security.ssl.http.pemcert_filepath=/usr/share/wazuh-indexer/certs/admin.pem
+      - -E
+      - plugins.security.ssl.http.pemkey_filepath=/usr/share/wazuh-indexer/certs/admin-key.pem
+      - -E
+      - plugins.security.ssl.http.pemtrustedcas_filepath=/usr/share/wazuh-indexer/certs/root-ca.pem
+      - -E
+      - plugins.security.ssl.transport.pemcert_filepath=/usr/share/wazuh-indexer/certs/admin.pem
+      - -E
+      - plugins.security.ssl.transport.pemkey_filepath=/usr/share/wazuh-indexer/certs/admin-key.pem
+      - -E
+      - plugins.security.ssl.transport.pemtrustedcas_filepath=/usr/share/wazuh-indexer/certs/root-ca.pem
     ulimits:
-      memlock:
-        soft: -1
-        hard: -1
+      memlock: { soft: -1, hard: -1 }
     volumes:
       - ./data/${LAB_NAME}/wazuh_indexer:/var/lib/wazuh-indexer
       - ./certs/${LAB_NAME}:/usr/share/wazuh-indexer/certs:ro
     networks:
       ${LAB_NAME}_net:
-        aliases:
-          - ${LAB_NAME}_wazuh_indexer
-          - wazuh.indexer
+        aliases: [ ${LAB_NAME}_wazuh_indexer, wazuh.indexer ]
     healthcheck:
       test: ["CMD", "curl", "-k", "https://localhost:9200/_cluster/health"]
       interval: 20s
