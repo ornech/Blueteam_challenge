@@ -36,25 +36,17 @@ services:
       - cluster.name=${LAB_NAME}-cluster
       - node.name=${LAB_NAME}_wazuh_indexer
       - discovery.type=single-node
-    # 👉 Forcer explicitement les chemins de certs avec des -E (lus par OpenSearch)
-    command:
-      - opensearch-docker
-      - -E
       - plugins.security.ssl.http.enabled=true
-      - -E
       - plugins.security.ssl.http.pemcert_filepath=/usr/share/wazuh-indexer/certs/admin.pem
-      - -E
       - plugins.security.ssl.http.pemkey_filepath=/usr/share/wazuh-indexer/certs/admin-key.pem
-      - -E
       - plugins.security.ssl.http.pemtrustedcas_filepath=/usr/share/wazuh-indexer/certs/root-ca.pem
-      - -E
       - plugins.security.ssl.transport.pemcert_filepath=/usr/share/wazuh-indexer/certs/admin.pem
-      - -E
       - plugins.security.ssl.transport.pemkey_filepath=/usr/share/wazuh-indexer/certs/admin-key.pem
-      - -E
       - plugins.security.ssl.transport.pemtrustedcas_filepath=/usr/share/wazuh-indexer/certs/root-ca.pem
     ulimits:
-      memlock: { soft: -1, hard: -1 }
+      memlock:
+        soft: -1
+        hard: -1
     volumes:
       - ./data/${LAB_NAME}/wazuh_indexer:/var/lib/wazuh-indexer
       - ./certs/${LAB_NAME}:/usr/share/wazuh-indexer/certs:ro
