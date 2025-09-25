@@ -26,6 +26,16 @@ if [ $# -ne 1 ]; then
 fi
 LAB_NAME="$1"
 
+log_info "Désactivation du plugin security"
+cat > ./opensearch-disable-security.yml <<'EOF'
+# fichier minimal pour tester la désactivation du plugin security
+cluster.name: wazuh-indexer
+path.data: /var/lib/wazuh-indexer
+# désactive le plugin Opensearch Security (pour debug uniquement)
+plugins.security.disabled: true
+EOF
+
+
 # -------- Prepare directories --------
 log_info "Création des dossiers nécessaires..."
 mkdir -p "$ENV_DIR" "$NGINX_CONF_DIR" \
@@ -52,6 +62,19 @@ fix_perms_certs() {
     fi
 }
 
+fix_perms_data() {
+    local LAB_NAME="$1"
+    local LAB_DATA_DIR="$DATA_DIR/$LAB_NAME"
+
+    if [ -d "$LAB_DATA_DIR" ]; then
+        log_info "Correction des permissions des données pour $LAB_NAME..."
+        sudo chown -R 1000:1000 "$LAB_DATA_DIR"
+        sudo chmod -R 755 "$LAB_DATA_DIR"
+        log_ok "Permissions corrigées sur $LAB_DATA_DIR"
+    else
+        log_warn "Pas de dossier de données pour $LAB_NAME ($LAB_DATA_DIR absent)"
+    fi
+}
 
 
 # -------- Run workflow --------
@@ -60,6 +83,7 @@ generate_certs "$LAB_NAME"
 generate_env "$LAB_NAME"
 generate_compose "$LAB_NAME"
 generate_nginx_conf "$LAB_NAME"
+fix_perms_certs "$LAB_NAME"
 fix_perms_certs "$LAB_NAME"
 
 # -------- Deploy lab --------

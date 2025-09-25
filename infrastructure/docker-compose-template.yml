@@ -14,8 +14,8 @@ services:
       - "${WAZUH_PORT_1515}:1515"
       - "${WAZUH_PORT_55000}:55000"
     volumes:
-      - ./data/${LAB_NAME}/wazuh_manager:/var/ossec/data
-      - ./certs/${LAB_NAME}:/etc/wazuh-manager/certs:ro
+      - /data/git/blueteam_challenge/infrastructure/data/${LAB_NAME}/wazuh_manager:/var/ossec/data
+      - /data/git/blueteam_challenge/infrastructure/certs/${LAB_NAME}:/etc/wazuh-manager/certs:ro
     networks:
       ${LAB_NAME}_net:
         aliases:
@@ -37,19 +37,23 @@ services:
       - node.name=${LAB_NAME}_wazuh_indexer
       - discovery.type=single-node
       - plugins.security.ssl.http.enabled=true
-      - plugins.security.ssl.http.pemcert_filepath=/usr/share/wazuh-indexer/certs/admin.pem
-      - plugins.security.ssl.http.pemkey_filepath=/usr/share/wazuh-indexer/certs/admin-key.pem
-      - plugins.security.ssl.http.pemtrustedcas_filepath=/usr/share/wazuh-indexer/certs/root-ca.pem
-      - plugins.security.ssl.transport.pemcert_filepath=/usr/share/wazuh-indexer/certs/admin.pem
-      - plugins.security.ssl.transport.pemkey_filepath=/usr/share/wazuh-indexer/certs/admin-key.pem
-      - plugins.security.ssl.transport.pemtrustedcas_filepath=/usr/share/wazuh-indexer/certs/root-ca.pem
+      - plugins.security.ssl.http.pemcert_filepath=/etc/wazuh-indexer/certs/admin.pem
+      - plugins.security.ssl.http.pemkey_filepath=/etc/wazuh-indexer/certs/admin-key.pem
+      - plugins.security.ssl.http.pemtrustedcas_filepath=/etc/wazuh-indexer/certs/root-ca.pem
+      - plugins.security.ssl.transport.pemcert_filepath=/etc/wazuh-indexer/certs/admin.pem
+      - plugins.security.ssl.transport.pemkey_filepath=/etc/wazuh-indexer/certs/admin-key.pem
+      - plugins.security.ssl.transport.pemtrustedcas_filepath=/etc/wazuh-indexer/certs/root-ca.pem
+
     ulimits:
       memlock:
         soft: -1
         hard: -1
     volumes:
       - ./data/${LAB_NAME}/wazuh_indexer:/var/lib/wazuh-indexer
-      - ./certs/${LAB_NAME}:/usr/share/wazuh-indexer/certs:ro
+      - ./certs/${LAB_NAME}:/etc/wazuh-indexer/certs:ro
+
+
+
     networks:
       ${LAB_NAME}_net:
         aliases: [ ${LAB_NAME}_wazuh_indexer, wazuh.indexer ]
