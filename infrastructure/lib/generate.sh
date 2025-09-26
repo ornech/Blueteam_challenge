@@ -39,22 +39,15 @@ generate_filebeat() {
 
     log_info "Génération du fichier filebeat.yml pour $LAB_NAME..."
     cat > "$FILEBEAT_FILE" <<EOF
-filebeat.modules:
-  - module: wazuh
-    alerts:
-      enabled: true
-      var.input: "file"
-      var.paths: ["/var/ossec/logs/alerts/alerts.json"]
-
+setup.template.enabled: false
 output.elasticsearch:
-  hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
+  hosts: ["http://lab1_wazuh_indexer:9200"]
   username: "admin"
   password: "admin"
   protocol: "http"
-  index: "wazuh-alerts-%{+yyyy.MM.dd}"
+  indices:
+    - index: "wazuh-alerts-%{+yyyy.MM.dd}"
 
-# Empêche Filebeat de tenter d'utiliser _type
-setup.template.type: _doc
 EOF
 
     sudo chown root:root "$FILEBEAT_FILE"
