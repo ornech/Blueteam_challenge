@@ -35,14 +35,15 @@ services:
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - cluster.name=${LAB_NAME}-cluster
       - node.name=${LAB_NAME}_wazuh_indexer
-      - discovery.type=single-node
-      - plugins.security.ssl.http.enabled=true
-      - plugins.security.ssl.http.pemcert_filepath=/etc/wazuh-indexer/certs/admin.pem
-      - plugins.security.ssl.http.pemkey_filepath=/etc/wazuh-indexer/certs/admin-key.pem
-      - plugins.security.ssl.http.pemtrustedcas_filepath=/etc/wazuh-indexer/certs/root-ca.pem
-      - plugins.security.ssl.transport.pemcert_filepath=/etc/wazuh-indexer/certs/admin.pem
-      - plugins.security.ssl.transport.pemkey_filepath=/etc/wazuh-indexer/certs/admin-key.pem
-      - plugins.security.ssl.transport.pemtrustedcas_filepath=/etc/wazuh-indexer/certs/root-ca.pem
+      - plugins.security.disabled=true
+      - network.host=0.0.0.0
+      #- plugins.security.ssl.http.enabled=true
+      #- plugins.security.ssl.http.pemcert_filepath=/etc/wazuh-indexer/certs/admin.pem
+      #- plugins.security.ssl.http.pemkey_filepath=/etc/wazuh-indexer/certs/admin-key.pem
+      #- plugins.security.ssl.http.pemtrustedcas_filepath=/etc/wazuh-indexer/certs/root-ca.pem
+      #- plugins.security.ssl.transport.pemcert_filepath=/etc/wazuh-indexer/certs/admin.pem
+      #- plugins.security.ssl.transport.pemkey_filepath=/etc/wazuh-indexer/certs/admin-key.pem
+      #- plugins.security.ssl.transport.pemtrustedcas_filepath=/etc/wazuh-indexer/certs/root-ca.pem
 
     ulimits:
       memlock:
