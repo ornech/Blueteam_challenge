@@ -1,4 +1,3 @@
-services:
   ${LAB_NAME}_wazuh_manager:
     image: wazuh/wazuh-manager:4.13.0
     container_name: ${LAB_NAME}_wazuh_manager
@@ -74,12 +73,16 @@ services:
       - WAZUH_API_PASSWORD=SecretPass123
       - OPENSEARCH_HOSTS=http://${LAB_NAME}_wazuh_indexer:9200
       # SSL for dashboard
-      - OPENSEARCH_SSL_CERTIFICATEAUTHORITIES=/etc/wazuh-dashboard/certs/root-ca.pem
-      - OPENSEARCH_SSL_VERIFICATIONMODE=certificate
+      #- OPENSEARCH_SSL_CERTIFICATEAUTHORITIES=/etc/wazuh-dashboard/certs/root-ca.pem
+      - OPENSEARCH_SSL_VERIFICATIONMODE=none
+
     ports:
       - "${WAZUH_PORT_5601}:5601"
     volumes:
       - ./certs/${LAB_NAME}:/etc/wazuh-dashboard/certs:ro
+      - ./configs/${LAB_NAME}/wazuh-dashboard/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
+      - ./configs/${LAB_NAME}/wazuh-dashboard/opensearch_dashboards.keystore:/etc/wazuh-dashboard/opensearch_dashboards.keystore
+
     networks:
       ${LAB_NAME}_net:
         aliases:

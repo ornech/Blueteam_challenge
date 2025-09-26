@@ -26,14 +26,46 @@ if [ $# -ne 1 ]; then
 fi
 LAB_NAME="$1"
 
+log_info "Génération de opensearch_dashboards.yml pour Wazuh Dashboard"
+mkdir -p ./configs/${LAB_NAME}/wazuh-dashboard
+
+cat > ./configs/${LAB_NAME}/wazuh-dashboard/opensearch_dashboards.yml <<'YML'
+server.host: "0.0.0.0"
+server.port: 5601
+
+# OpenSearch (ton indexer est en HTTP sans sécurité)
+opensearch.hosts: ["http://lab1_wazuh_indexer:9200"]
+
+# Comme on est en HTTP (pas de TLS), pas de vérification TLS
+opensearch.ssl.verificationMode: "none"
+
+# Optionnel, utile pour l’appli Wazuh
+opensearch.requestHeadersAllowlist: ["securitytenant","Authorization"]
+YML
+
+log_info "Fix des permissions sur opensearch_dashboards.yml et création de opensearch_dashboards.keystore vide"
+touch ./configs/${LAB_NAME}/wazuh-dashboard/opensearch_dashboards.keystore
+sudo chown 1000:1000 ./configs/${LAB_NAME}/wazuh-dashboard/opensearch_dashboards.*
+sudo chmod 644 ./configs/${LAB_NAME}/wazuh-dashboard/opensearch_dashboards.yml
+sudo chmod 660 ./configs/${LAB_NAME}/wazuh-dashboard/opensearch_dashboards.keystore
+
+
 log_info "Désactivation du plugin security"
 cat > ./opensearch-disable-security.yml <<'EOF'
-# fichier minimal pour tester la désactivation du plugin security
+# Fichier minimal pour désactiver la sécurité dans un lab
 cluster.name: wazuh-indexer
 path.data: /var/lib/wazuh-indexer
-# désactive le plugin Opensearch Security (pour debug uniquement)
+
+# Désactivation du plugin Security (⚠️ à ne pas utiliser en prod)
 plugins.security.disabled: true
+
+# Écoute sur toutes les interfaces pour être accessible aux autres conteneurs
+network.host: 0.0.0.0
+
+# Permet un cluster à un seul nœud (lab / test uniquement)
+discovery.type: single-node
 EOF
+
 
 
 # -------- Prepare directories --------
