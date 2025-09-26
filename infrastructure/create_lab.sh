@@ -113,6 +113,7 @@ fix_perms_data() {
 ensure_lab_network "$LAB_NAME"
 generate_certs "$LAB_NAME"
 generate_env "$LAB_NAME"
+generate_filebeat "$LAB_NAME"
 generate_compose "$LAB_NAME"
 generate_nginx_conf "$LAB_NAME"
 fix_perms_certs "$LAB_NAME"

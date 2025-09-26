@@ -24,6 +24,47 @@ EOF
     log_ok ".env généré : $ENV_FILE"
 }
 
+
+generate_filebeat() {
+    local LAB_NAME="$1"
+    local FILEBEAT_DIR="$SCRIPT_DIR/configs/${LAB_NAME}"
+    local FILEBEAT_FILE="$FILEBEAT_DIR/filebeat.yml"
+
+    mkdir -p "$FILEBEAT_DIR"
+
+    if [ -f "$FILEBEAT_FILE" ]; then
+        log_warn "$FILEBEAT_FILE existe déjà"
+        return
+    fi
+
+    log_info "Génération du fichier filebeat.yml pour $LAB_NAME..."
+    cat > "$FILEBEAT_FILE" <<EOF
+filebeat.modules:
+  - module: wazuh
+    alerts:
+      enabled: true
+      var.input: "file"
+      var.paths: ["/var/ossec/logs/alerts/alerts.json"]
+
+output.elasticsearch:
+  hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
+  username: "admin"
+  password: "admin"
+  protocol: "http"
+  index: "wazuh-alerts-%{+yyyy.MM.dd}"
+
+# Empêche Filebeat de tenter d'utiliser _type
+setup.template.type: _doc
+EOF
+
+    sudo chown 1000:1000 "$FILEBEAT_FILE"
+    sudo chmod 644 "$FILEBEAT_FILE"
+
+    log_ok "$FILEBEAT_FILE généré"
+}
+
+
+
 generate_compose() {
     local LAB_NAME="$1"
     local COMPOSE_FILE="$SCRIPT_DIR/docker-compose-${LAB_NAME}.yml"
