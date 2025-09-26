@@ -57,7 +57,7 @@ output.elasticsearch:
 setup.template.type: _doc
 EOF
 
-    sudo chown 1000:1000 "$FILEBEAT_FILE"
+    sudo chown root:root "$FILEBEAT_FILE"
     sudo chmod 644 "$FILEBEAT_FILE"
 
     log_ok "$FILEBEAT_FILE généré"
