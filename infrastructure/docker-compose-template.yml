@@ -6,7 +6,7 @@ services:
     restart: always
     environment:
       - WAZUH_CLUSTER_KEY=ClusterKey123
-      - INDEXER_URL=https://${LAB_NAME}_wazuh_indexer:9200
+      - INDEXER_URL=http://${LAB_NAME}_wazuh_indexer:9200
       - INDEXER_USERNAME=admin
       - INDEXER_PASSWORD=admin
     ports:
@@ -21,7 +21,7 @@ services:
         aliases:
           - ${LAB_NAME}_wazuh_manager
     healthcheck:
-      test: ["CMD", "curl", "-k", "https://localhost:55000"]
+      test: ["CMD", "curl", "-k", "http://localhost:55000"]
       interval: 20s
       timeout: 5s
       retries: 10
@@ -43,7 +43,6 @@ services:
       #- plugins.security.ssl.http.pemtrustedcas_filepath=/etc/wazuh-indexer/certs/root-ca.pem
       #- plugins.security.ssl.transport.pemcert_filepath=/etc/wazuh-indexer/certs/admin.pem
       #- plugins.security.ssl.transport.pemkey_filepath=/etc/wazuh-indexer/certs/admin-key.pem
-      #- plugins.security.ssl.transport.pemtrustedcas_filepath=/etc/wazuh-indexer/certs/root-ca.pem
 
     ulimits:
       memlock:
@@ -58,7 +57,7 @@ services:
       ${LAB_NAME}_net:
         aliases: [ ${LAB_NAME}_wazuh_indexer, wazuh.indexer ]
     healthcheck:
-      test: ["CMD", "curl", "-k", "https://localhost:9200/_cluster/health"]
+      test: ["CMD", "curl", "-k", "http://localhost:9200/_cluster/health"]
       interval: 20s
       timeout: 5s
       retries: 10
@@ -70,10 +69,10 @@ services:
     hostname: ${LAB_NAME}_wazuh_dashboard
     restart: always
     environment:
-      - WAZUH_API_URL=https://${LAB_NAME}_wazuh_manager:55000
+      - WAZUH_API_URL=http://${LAB_NAME}_wazuh_manager:55000
       - WAZUH_API_USER=admin
       - WAZUH_API_PASSWORD=SecretPass123
-      - OPENSEARCH_HOSTS=https://${LAB_NAME}_wazuh_indexer:9200
+      - OPENSEARCH_HOSTS=http://${LAB_NAME}_wazuh_indexer:9200
       # SSL for dashboard
       - OPENSEARCH_SSL_CERTIFICATEAUTHORITIES=/etc/wazuh-dashboard/certs/root-ca.pem
       - OPENSEARCH_SSL_VERIFICATIONMODE=certificate
@@ -91,7 +90,7 @@ services:
       ${LAB_NAME}_wazuh_indexer:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-k", "https://localhost:5601"]
+      test: ["CMD", "curl", "-k", "http://localhost:5601"]
       interval: 30s
       timeout: 10s
       retries: 10
