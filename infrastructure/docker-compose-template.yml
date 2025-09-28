@@ -16,9 +16,9 @@ services:
       - "${WAZUH_PORT_1515}:1515"
       - "${WAZUH_PORT_55000}:55000"
     volumes:
-      - /data/git/blueteam_challenge/infrastructure/data/${LAB_NAME}/wazuh_manager:/var/ossec/data
-      - /data/git/blueteam_challenge/infrastructure/configs/${LAB_NAME}/ossec/ossec.conf:/var/ossec/etc/ossec.conf:ro
-      - /data/git/blueteam_challenge/infrastructure/certs/${LAB_NAME}:/etc/wazuh-manager/certs:ro
+      - ./labs/${LAB_NAME}/data/wazuh_manager:/var/ossec/data
+      - ./labs/${LAB_NAME}/configs/ossec/ossec.conf:/var/ossec/etc/ossec.conf:ro
+      - ./labs/${LAB_NAME}/certs:/etc/wazuh-manager/certs:ro
     networks:
       ${LAB_NAME}_net:
         aliases:
@@ -40,12 +40,6 @@ services:
       - node.name=${LAB_NAME}_wazuh_indexer
       - plugins.security.disabled=true
       - network.host=0.0.0.0
-      #- plugins.security.ssl.http.enabled=true
-      #- plugins.security.ssl.http.pemcert_filepath=/etc/wazuh-indexer/certs/admin.pem
-      #- plugins.security.ssl.http.pemkey_filepath=/etc/wazuh-indexer/certs/admin-key.pem
-      #- plugins.security.ssl.http.pemtrustedcas_filepath=/etc/wazuh-indexer/certs/root-ca.pem
-      #- plugins.security.ssl.transport.pemcert_filepath=/etc/wazuh-indexer/certs/admin.pem
-      #- plugins.security.ssl.transport.pemkey_filepath=/etc/wazuh-indexer/certs/admin-key.pem
     security_opt:
       - seccomp:unconfined
     ulimits:
@@ -57,10 +51,9 @@ services:
         soft: -1
         hard: -1
     volumes:
-      - ./data/${LAB_NAME}/wazuh_indexer:/var/lib/wazuh-indexer
-      - ./certs/${LAB_NAME}:/etc/wazuh-indexer/certs:ro
-      - ./opensearch-disable-security.yml:/usr/share/wazuh-indexer/opensearch.yml:ro
-
+      - ./labs/${LAB_NAME}/data/wazuh_indexer:/var/lib/wazuh-indexer
+      - ./labs/${LAB_NAME}/certs:/etc/wazuh-indexer/certs:ro
+      - ./labs/${LAB_NAME}/opensearch-disable-security.yml:/usr/share/wazuh-indexer/opensearch.yml:ro
     networks:
       ${LAB_NAME}_net:
         aliases: [ ${LAB_NAME}_wazuh_indexer, wazuh.indexer ]
@@ -69,7 +62,6 @@ services:
       interval: 20s
       timeout: 5s
       retries: 10
-
 
   ${LAB_NAME}_wazuh_dashboard:
     image: wazuh/wazuh-dashboard:4.13.0
@@ -81,17 +73,13 @@ services:
       - WAZUH_API_USER=admin
       - WAZUH_API_PASSWORD=SecretPass123
       - OPENSEARCH_HOSTS=http://${LAB_NAME}_wazuh_indexer:9200
-      # SSL for dashboard
-      #- OPENSEARCH_SSL_CERTIFICATEAUTHORITIES=/etc/wazuh-dashboard/certs/root-ca.pem
       - OPENSEARCH_SSL_VERIFICATIONMODE=none
-
     ports:
       - "${WAZUH_PORT_5601}:5601"
     volumes:
-      - ./certs/${LAB_NAME}:/etc/wazuh-dashboard/certs:ro
-      - ./configs/${LAB_NAME}/wazuh-dashboard/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
-      - ./configs/${LAB_NAME}/wazuh-dashboard/opensearch_dashboards.keystore:/etc/wazuh-dashboard/opensearch_dashboards.keystore
-
+      - ./labs/${LAB_NAME}/certs:/etc/wazuh-dashboard/certs:ro
+      - ./labs/${LAB_NAME}/configs/wazuh-dashboard/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
+      - ./labs/${LAB_NAME}/configs/wazuh-dashboard/opensearch_dashboards.keystore:/etc/wazuh-dashboard/opensearch_dashboards.keystore
     networks:
       ${LAB_NAME}_net:
         aliases:
@@ -117,21 +105,13 @@ services:
       MYSQL_USER: app
       MYSQL_PASSWORD: vulnerables
     volumes:
-      - ./data/${LAB_NAME}/mariadb:/var/lib/mysql
+      - ./labs/${LAB_NAME}/data/mariadb:/var/lib/mysql
     networks:
       ${LAB_NAME}_net:
         aliases:
           - ${LAB_NAME}_mariadb
     healthcheck:
-      test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost",
-          "-p$MYSQL_ROOT_PASSWORD",
-        ]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p$MYSQL_ROOT_PASSWORD"]
       interval: 20s
       timeout: 5s
       retries: 10

@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
 
-# Nom du script : create_lab.sh
+# Nom du script : generate.sh
 # Auteur : Jean-Francois Ornech '@ornech'
 # Description : Génère les fichiers nécessaires pour un labo (fichier .env, docker-compose, conf Nginx, certificats)
-# Usage : ./create_lab.sh <lab_name>
+# Usage : source depuis create_lab.sh
 
 generate_env() {
     local LAB_NAME="$1"
+    local LAB_DIR="$SCRIPT_DIR/labs/$LAB_NAME"
+    local ENV_FILE="$LAB_DIR/${LAB_NAME}.env"
     local LAB_NUM=$(echo "$LAB_NAME" | grep -o '[0-9]*$' || echo "1")
-    local ENV_FILE="${ENV_DIR}/${LAB_NAME}.env"
 
     if [ -f "$ENV_FILE" ]; then
         log_warn "$ENV_FILE existe déjà"
@@ -31,10 +32,10 @@ EOF
 
 generate_fileossec() {
     local LAB_NAME="$1"
-    local FILEOSSEC_DIR="$SCRIPT_DIR/configs/${LAB_NAME}/ossec"
-    local FILEOSSEC_FILE="$FILEOSSEC_DIR/ossec.conf"
+    local CONFIG_DIR="$SCRIPT_DIR/labs/$LAB_NAME/configs/ossec"
+    local FILEOSSEC_FILE="$CONFIG_DIR/ossec.conf"
 
-    mkdir -p "$FILEOSSEC_DIR"
+    mkdir -p "$CONFIG_DIR"
 
     if [ -f "$FILEOSSEC_FILE" ]; then
         log_warn "$FILEOSSEC_FILE existe déjà"
@@ -66,12 +67,9 @@ EOF
     log_ok "$FILEOSSEC_FILE généré"
 }
 
-
-
-
 generate_compose() {
     local LAB_NAME="$1"
-    local COMPOSE_FILE="$SCRIPT_DIR/docker-compose-${LAB_NAME}.yml"
+    local COMPOSE_FILE="$SCRIPT_DIR/labs/$LAB_NAME/docker-compose.yml"
 
     log_info "Génération docker-compose pour $LAB_NAME..."
     export LAB_NAME COMPOSE_PROJECT_NAME
@@ -81,7 +79,7 @@ generate_compose() {
 
 generate_nginx_conf() {
     local LAB_NAME="$1"
-    local NGINX_FILE="/etc/nginx/conf.d/${LAB_NAME}.conf"   # <--- direct host
+    local NGINX_FILE="/etc/nginx/conf.d/${LAB_NAME}.conf"   # sur l’hôte
 
     log_info "Génération config Nginx pour $LAB_NAME..."
     sudo tee "$NGINX_FILE" >/dev/null <<EOF
@@ -109,8 +107,10 @@ EOF
 
 generate_certs() {
     local LAB_NAME="$1"
-    local CERTS_DIR="$SCRIPT_DIR/certs/${LAB_NAME}"
+    local CERTS_DIR="$SCRIPT_DIR/labs/$LAB_NAME/certs"
     local CERTS_YML="$CERTS_DIR/certs.yml"
+
+    mkdir -p "$CERTS_DIR"
 
     if [ -f "$CERTS_DIR/root-ca.pem" ]; then
         log_ok "Certificats déjà présents pour $LAB_NAME → on les réutilise"
@@ -119,7 +119,6 @@ generate_certs() {
 
     log_info "Génération des certificats pour $LAB_NAME..."
 
-    # Créer un certs.yml minimal si absent
     if [ ! -f "$CERTS_YML" ]; then
         cat > "$CERTS_YML" <<EOF
 nodes:
@@ -131,7 +130,6 @@ EOF
         log_info "Fichier certs.yml généré : $CERTS_YML"
     fi
 
-    # Lancer le conteneur générateur
     docker run --rm \
         -v "$CERTS_DIR:/certificates" \
         -v "$CERTS_YML:/config/certs.yml" \
