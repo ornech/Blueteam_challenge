@@ -3,14 +3,13 @@
 
 # Nom du script : generate.sh
 # Auteur : Jean-Francois Ornech '@ornech'
-# Description : Génère les fichiers nécessaires pour un labo (fichier .env, docker-compose, conf Nginx, certificats)
-# Usage : source depuis create_lab.sh
+# Description : Génère les fichiers nécessaires pour un labo
 
 generate_env() {
     local LAB_NAME="$1"
-    local LAB_DIR="$SCRIPT_DIR/labs/$LAB_NAME"
-    local ENV_FILE="$LAB_DIR/${LAB_NAME}.env"
+    local LAB_DIR="$2"
     local LAB_NUM=$(echo "$LAB_NAME" | grep -o '[0-9]*$' || echo "1")
+    local ENV_FILE="$LAB_DIR/${LAB_NAME}.env"
 
     if [ -f "$ENV_FILE" ]; then
         log_warn "$ENV_FILE existe déjà"
@@ -32,10 +31,10 @@ EOF
 
 generate_fileossec() {
     local LAB_NAME="$1"
-    local CONFIG_DIR="$SCRIPT_DIR/labs/$LAB_NAME/configs/ossec"
-    local FILEOSSEC_FILE="$CONFIG_DIR/ossec.conf"
+    local OSSEC_DIR="$2"
+    local FILEOSSEC_FILE="$OSSEC_DIR/ossec.conf"
 
-    mkdir -p "$CONFIG_DIR"
+    mkdir -p "$OSSEC_DIR"
 
     if [ -f "$FILEOSSEC_FILE" ]; then
         log_warn "$FILEOSSEC_FILE existe déjà"
@@ -69,24 +68,24 @@ EOF
 
 generate_compose() {
     local LAB_NAME="$1"
-    local COMPOSE_FILE="$SCRIPT_DIR/labs/$LAB_NAME/docker-compose.yml"
+    local TEMPLATE="$2"
+    local OUTPUT="$3"
 
     log_info "Génération docker-compose pour $LAB_NAME..."
     export LAB_NAME COMPOSE_PROJECT_NAME
-    envsubst < "$COMPOSE_TEMPLATE" > "$COMPOSE_FILE"
-    log_ok "docker-compose généré : $COMPOSE_FILE"
+    envsubst < "$TEMPLATE" > "$OUTPUT"
+    log_ok "docker-compose généré : $OUTPUT"
 }
 
 generate_nginx_conf() {
     local LAB_NAME="$1"
-    local NGINX_FILE="/etc/nginx/conf.d/${LAB_NAME}.conf"   # sur l’hôte
+    local NGINX_FILE="$2/${LAB_NAME}.conf"
 
     log_info "Génération config Nginx pour $LAB_NAME..."
     sudo tee "$NGINX_FILE" >/dev/null <<EOF
 server {
     listen 80;
     server_name dvwa.${LAB_NAME}.local;
-
     location / {
         proxy_pass http://${LAB_NAME}_dvwa:80;
     }
@@ -95,9 +94,8 @@ server {
 server {
     listen 80;
     server_name wazuh.${LAB_NAME}.local;
-
     location / {
-        proxy_pass https://${LAB_NAME}_wazuh_dashboard:5601;
+        proxy_pass http://${LAB_NAME}_wazuh_dashboard:5601;
         proxy_ssl_verify off;
     }
 }
@@ -107,16 +105,15 @@ EOF
 
 generate_certs() {
     local LAB_NAME="$1"
-    local CERTS_DIR="$SCRIPT_DIR/labs/$LAB_NAME/certs"
+    local CERTS_DIR="$2"
     local CERTS_YML="$CERTS_DIR/certs.yml"
-
-    mkdir -p "$CERTS_DIR"
 
     if [ -f "$CERTS_DIR/root-ca.pem" ]; then
         log_ok "Certificats déjà présents pour $LAB_NAME → on les réutilise"
         return
     fi
 
+    mkdir -p "$CERTS_DIR"
     log_info "Génération des certificats pour $LAB_NAME..."
 
     if [ ! -f "$CERTS_YML" ]; then
