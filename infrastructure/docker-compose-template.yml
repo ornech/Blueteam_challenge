@@ -17,8 +17,8 @@ services:
       - "${WAZUH_PORT_55000}:55000"
     volumes:
       - /data/git/blueteam_challenge/infrastructure/data/${LAB_NAME}/wazuh_manager:/var/ossec/data
+      - /data/git/blueteam_challenge/infrastructure/configs/${LAB_NAME}/ossec/ossec.conf:/var/ossec/etc/ossec.conf:ro
       - /data/git/blueteam_challenge/infrastructure/certs/${LAB_NAME}:/etc/wazuh-manager/certs:ro
-      - ./configs/${LAB_NAME}/filebeat.yml:/etc/filebeat/filebeat.yml:ro
     networks:
       ${LAB_NAME}_net:
         aliases:
@@ -46,8 +46,13 @@ services:
       #- plugins.security.ssl.http.pemtrustedcas_filepath=/etc/wazuh-indexer/certs/root-ca.pem
       #- plugins.security.ssl.transport.pemcert_filepath=/etc/wazuh-indexer/certs/admin.pem
       #- plugins.security.ssl.transport.pemkey_filepath=/etc/wazuh-indexer/certs/admin-key.pem
-
+    security_opt:
+      - seccomp:unconfined
     ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
       memlock:
         soft: -1
         hard: -1

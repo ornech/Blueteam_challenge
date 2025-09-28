@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# -*- coding: utf-8 -*-
+
+# Nom du script : create_lab.sh
+# Auteur : Jean-Francois Ornech '@ornech'
+# Description : Crée et déploie un labo complet (conteneurs, volumes, fichiers, conf Nginx)
+# Usage : ./create_lab.sh <lab_name>
+
 set -euo pipefail
 
 # -------- Paths --------
@@ -113,7 +120,7 @@ fix_perms_data() {
 ensure_lab_network "$LAB_NAME"
 generate_certs "$LAB_NAME"
 generate_env "$LAB_NAME"
-generate_filebeat "$LAB_NAME"
+generate_fileossec "$LAB_NAME"
 generate_compose "$LAB_NAME"
 generate_nginx_conf "$LAB_NAME"
 fix_perms_certs "$LAB_NAME"

@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Generate env, compose, nginx files
+# -*- coding: utf-8 -*-
+
+# Nom du script : create_lab.sh
+# Auteur : Jean-Francois Ornech '@ornech'
+# Description : Génère les fichiers nécessaires pour un labo (fichier .env, docker-compose, conf Nginx, certificats)
+# Usage : ./create_lab.sh <lab_name>
 
 generate_env() {
     local LAB_NAME="$1"
@@ -24,37 +29,43 @@ EOF
     log_ok ".env généré : $ENV_FILE"
 }
 
-
-generate_filebeat() {
+generate_fileossec() {
     local LAB_NAME="$1"
-    local FILEBEAT_DIR="$SCRIPT_DIR/configs/${LAB_NAME}"
-    local FILEBEAT_FILE="$FILEBEAT_DIR/filebeat.yml"
+    local FILEOSSEC_DIR="$SCRIPT_DIR/configs/${LAB_NAME}/ossec"
+    local FILEOSSEC_FILE="$FILEOSSEC_DIR/ossec.conf"
 
-    mkdir -p "$FILEBEAT_DIR"
+    mkdir -p "$FILEOSSEC_DIR"
 
-    if [ -f "$FILEBEAT_FILE" ]; then
-        log_warn "$FILEBEAT_FILE existe déjà"
+    if [ -f "$FILEOSSEC_FILE" ]; then
+        log_warn "$FILEOSSEC_FILE existe déjà"
         return
     fi
 
-    log_info "Génération du fichier filebeat.yml pour $LAB_NAME..."
-    cat > "$FILEBEAT_FILE" <<EOF
-setup.template.enabled: false
-output.elasticsearch:
-  hosts: ["http://lab1_wazuh_indexer:9200"]
-  username: "admin"
-  password: "admin"
-  protocol: "http"
-  indices:
-    - index: "wazuh-alerts-%{+yyyy.MM.dd}"
-
+    log_info "Génération du fichier ossec.conf pour $LAB_NAME..."
+    cat > "$FILEOSSEC_FILE" <<EOF
+<ossec_config>
+  <wazuh_db>
+    <indexer>
+      <enabled>yes</enabled>
+      <hosts>
+        <host>http://${LAB_NAME}_wazuh_indexer:9200</host>
+      </hosts>
+      <user>admin</user>
+      <password>admin</password>
+      <ssl>
+        <verify_peer>no</verify_peer>
+      </ssl>
+    </indexer>
+  </wazuh_db>
+</ossec_config>
 EOF
 
-    sudo chown root:root "$FILEBEAT_FILE"
-    sudo chmod 644 "$FILEBEAT_FILE"
+    sudo chown root:root "$FILEOSSEC_FILE"
+    sudo chmod 644 "$FILEOSSEC_FILE"
 
-    log_ok "$FILEBEAT_FILE généré"
+    log_ok "$FILEOSSEC_FILE généré"
 }
+
 
 
 
