@@ -1,3 +1,4 @@
+service:
   ${LAB_NAME}_wazuh_manager:
     image: wazuh/wazuh-manager:4.13.0
     container_name: ${LAB_NAME}_wazuh_manager
@@ -5,6 +6,10 @@
     restart: always
     environment:
       - WAZUH_CLUSTER_KEY=ClusterKey123
+      ## dernière modification
+      - INDEXER_URL=http://${LAB_NAME}_wazuh_indexer:9200
+      - INDEXER_USERNAME=admin
+      - INDEXER_PASSWORD=admin
     ports:
       - "${WAZUH_PORT_1514}:1514/udp"
       - "${WAZUH_PORT_1515}:1515"
