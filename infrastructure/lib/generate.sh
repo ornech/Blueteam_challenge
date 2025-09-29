@@ -196,32 +196,29 @@ EOF
         exit 1
     fi
 }
-
 inject_wazuh_template() {
     local LAB_NAME="$1"
     local INDEXER_CONTAINER="${LAB_NAME}_wazuh_indexer"
 
-    log_info "Injection du template Wazuh dans l'indexer ($INDEXER_CONTAINER)..."
+    log_info "Injection du pipeline Wazuh dans l'indexer ($INDEXER_CONTAINER)..."
 
-    docker exec -i "$INDEXER_CONTAINER" curl -s -u admin:admin \
-        -X PUT "http://localhost:9200/_template/wazuh" \
+    docker exec -i "$INDEXER_CONTAINER" curl -s --fail -u admin:admin \
+        -X PUT "http://localhost:9200/_ingest/pipeline/filebeat-7.10.2-wazuh-alerts-pipeline" \
         -H 'Content-Type: application/json' \
         -d '{
-              "index_patterns":["wazuh-alerts-*"],
-              "settings":{"index":{"number_of_shards":1,"number_of_replicas":0}},
-              "mappings":{
-                "properties":{
-                  "timestamp":{"type":"date"},
-                  "rule":{"type":"object"},
-                  "agent":{"type":"object"},
-                  "manager":{"type":"object"},
-                  "data":{"type":"object"}
-                }
-              }
-            }' >/dev/null
+              "description": "Pipeline Filebeat 7.10.2 pour Wazuh : supprime le champ _type obsolète",
+              "processors": [
+                { "remove": { "field": "_type", "ignore_missing": true } }
+              ]
+            }' >/dev/null 2>&1
 
-    log_ok "Template Wazuh injecté avec succès dans $INDEXER_CONTAINER"
+    if [ $? -eq 0 ]; then
+        log_ok "Pipeline injecté avec succès dans $INDEXER_CONTAINER"
+    else
+        log_error "Échec de l’injection du pipeline dans $INDEXER_CONTAINER (indexer pas encore prêt ?)"
+    fi
 }
+
 
 generate_filebeat_config() {
   local LAB_NAME="$1"
@@ -299,8 +296,6 @@ inject_filebeat_pipeline() {
                 { "remove": { "field": "_type", "ignore_missing": true } }
               ]
             }' >/dev/null
-
-
 
     log_ok "Pipeline remove_type injecté dans $INDEXER_CONTAINER"
 }
