@@ -21,9 +21,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="$SCRIPT_DIR/lib"
 
 LAB_DIR="$SCRIPT_DIR/labs/$LAB_NAME"
-DATA_DIR="$LAB_DIR/data"
-CONFIG_DIR="$LAB_DIR/configs"
-CERTS_DIR="$LAB_DIR/certs"
 ENV_FILE="$LAB_DIR/${LAB_NAME}.env"
 COMPOSE_FILE="$LAB_DIR/docker-compose.yml"
 
@@ -37,65 +34,51 @@ COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-blueteam}"
 COMPOSE_TEMPLATE="$SCRIPT_DIR/docker-compose-template.yml"
 NGINX_CONF_DIR="/etc/nginx/conf.d"   # nginx sur l’hôte
 
-# -------- Préparation --------
-log_info "Création des dossiers nécessaires..."
-mkdir -p "$LAB_DIR" "$DATA_DIR/wazuh_manager" "$DATA_DIR/wazuh_indexer" "$DATA_DIR/mariadb" \
-         "$CONFIG_DIR/ossec" "$CONFIG_DIR/wazuh-dashboard" "$CERTS_DIR" "$NGINX_CONF_DIR"
+# -------- Création des répertoires --------
+if [ -d "$LAB_DIR" ]; then
+    log_warn "Le labo $LAB_NAME existe déjà dans $LAB_DIR"
+    exit 1
+fi
+
+mkdir -p "$LAB_DIR/wazuh_manager/config" "$LAB_DIR/wazuh_manager/data" "$LAB_DIR/wazuh_manager/certs" \
+         "$LAB_DIR/wazuh_indexer/config" "$LAB_DIR/wazuh_indexer/data" "$LAB_DIR/wazuh_indexer/certs" \
+         "$LAB_DIR/wazuh_dashboard/config" "$LAB_DIR/wazuh_dashboard/certs" \
+         "$LAB_DIR/mariadb/data" \
+         "$LAB_DIR/dvwa" \
+         "$LAB_DIR/common"
 
 log_ok "Dossiers prêts : $LAB_DIR"
 
-# -------- Config Dashboard --------
-log_info "Génération de opensearch_dashboards.yml pour Wazuh Dashboard"
-cat > "$CONFIG_DIR/wazuh-dashboard/opensearch_dashboards.yml" <<YML
-server.host: "0.0.0.0"
-server.port: 5601
-opensearch.hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
-opensearch.ssl.verificationMode: "none"
-opensearch.requestHeadersAllowlist: ["securitytenant","Authorization"]
-YML
-
-touch "$CONFIG_DIR/wazuh-dashboard/opensearch_dashboards.keystore"
-sudo chown 1000:1000 "$CONFIG_DIR/wazuh-dashboard/"*
-sudo chmod 644 "$CONFIG_DIR/wazuh-dashboard/opensearch_dashboards.yml"
-sudo chmod 660 "$CONFIG_DIR/wazuh-dashboard/opensearch_dashboards.keystore"
-
-# -------- Opensearch disable security --------
-log_info "Désactivation du plugin security"
-cat > "$LAB_DIR/opensearch-disable-security.yml" <<EOF
-cluster.name: wazuh-indexer
-path.data: /var/lib/wazuh-indexer
-plugins.security.disabled: true
-network.host: 0.0.0.0
-discovery.type: single-node
-EOF
+# -------- Run workflow --------
+generate_env "$LAB_NAME" "$LAB_DIR"
+generate_fileossec "$LAB_NAME" "$LAB_DIR"
+generate_opensearch_disable_security "$LAB_NAME" "$LAB_DIR"
+generate_dashboard_conf "$LAB_NAME" "$LAB_DIR"
+generate_compose "$LAB_NAME" "$COMPOSE_TEMPLATE" "$COMPOSE_FILE"
+generate_nginx_conf "$LAB_NAME" "$NGINX_CONF_DIR"
+generate_certs "$LAB_NAME" "$LAB_DIR"
 
 # -------- Fix perms --------
 fix_perms_certs() {
-    if [ -d "$CERTS_DIR" ]; then
+    if [ -d "$LAB_DIR/common" ]; then
         log_info "Correction des permissions des certificats pour $LAB_NAME..."
-        sudo chown -R 1000:1000 "$CERTS_DIR"
-        sudo chmod 755 "$CERTS_DIR"
-        sudo chmod 644 "$CERTS_DIR"/*.{pem,key,yml} 2>/dev/null || true
-        log_ok "Permissions corrigées sur $CERTS_DIR"
+        sudo chown -R 1000:1000 "$LAB_DIR/common"
+        sudo chmod 755 "$LAB_DIR/common"
+        sudo chmod 644 "$LAB_DIR/common"/*.{pem,key,yml} 2>/dev/null || true
+        log_ok "Permissions corrigées sur $LAB_DIR/common"
     fi
 }
 
 fix_perms_data() {
-    if [ -d "$DATA_DIR" ]; then
-        log_info "Correction des permissions des données pour $LAB_NAME..."
-        sudo chown -R 1000:1000 "$DATA_DIR"
-        sudo chmod -R 755 "$DATA_DIR"
-        log_ok "Permissions corrigées sur $DATA_DIR"
-    fi
+    for d in "$LAB_DIR"/*/data; do
+        if [ -d "$d" ]; then
+            log_info "Correction des permissions sur $d..."
+            sudo chown -R 1000:1000 "$d"
+            sudo chmod -R 755 "$d"
+            log_ok "Permissions corrigées sur $d"
+        fi
+    done
 }
-
-# -------- Run workflow --------
-generate_env "$LAB_NAME" "$LAB_DIR"
-generate_fileossec "$LAB_NAME" "$CONFIG_DIR/ossec"
-generate_compose "$LAB_NAME" "$COMPOSE_TEMPLATE" "$COMPOSE_FILE"
-generate_nginx_conf "$LAB_NAME" "$NGINX_CONF_DIR"
-generate_certs "$LAB_NAME" "$CERTS_DIR"
-
 
 fix_perms_certs
 fix_perms_data
@@ -120,4 +103,3 @@ log_ok "Lab ${LAB_NAME} déployé !"
 echo
 echo "  - Accès DVWA  : http://dvwa.${LAB_NAME}.local"
 echo "  - Accès Wazuh : http://wazuh.${LAB_NAME}.local"
-echo

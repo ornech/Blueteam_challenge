@@ -16,15 +16,15 @@ services:
       - "${WAZUH_PORT_1515}:1515"
       - "${WAZUH_PORT_55000}:55000"
     volumes:
-      - ./labs/${LAB_NAME}/data/wazuh_manager:/var/ossec/data
-      - ./labs/${LAB_NAME}/configs/ossec/ossec.conf:/var/ossec/etc/ossec.conf:ro
-      - ./labs/${LAB_NAME}/certs:/etc/wazuh-manager/certs:ro
+      - ./wazuh_manager/data:/var/ossec/data
+      - ./wazuh_manager/config/ossec.conf:/var/ossec/etc/ossec.conf:ro
+      - ./wazuh_manager/certs:/etc/wazuh-manager/certs:ro
     networks:
       ${LAB_NAME}_net:
         aliases:
           - ${LAB_NAME}_wazuh_manager
     healthcheck:
-      test: ["CMD", "curl", "-k", "http://localhost:55000"]
+      test: ["CMD-SHELL", "curl -k http://localhost:55000 || exit 1"]
       interval: 20s
       timeout: 5s
       retries: 10
@@ -51,14 +51,14 @@ services:
         soft: -1
         hard: -1
     volumes:
-      - ./labs/${LAB_NAME}/data/wazuh_indexer:/var/lib/wazuh-indexer
-      - ./labs/${LAB_NAME}/certs:/etc/wazuh-indexer/certs:ro
-      - ./labs/${LAB_NAME}/opensearch-disable-security.yml:/usr/share/wazuh-indexer/opensearch.yml:ro
+      - ./wazuh_indexer/data:/var/lib/wazuh-indexer
+      - ./wazuh_indexer/config/opensearch-disable-security.yml:/usr/share/wazuh-indexer/opensearch.yml:ro
+      - ./wazuh_indexer/certs:/etc/wazuh-indexer/certs:ro
     networks:
       ${LAB_NAME}_net:
         aliases: [ ${LAB_NAME}_wazuh_indexer, wazuh.indexer ]
     healthcheck:
-      test: ["CMD", "curl", "-k", "http://localhost:9200/_cluster/health"]
+      test: ["CMD-SHELL", "curl -k http://localhost:9200/_cluster/health || exit 1"]
       interval: 20s
       timeout: 5s
       retries: 10
@@ -77,9 +77,9 @@ services:
     ports:
       - "${WAZUH_PORT_5601}:5601"
     volumes:
-      - ./labs/${LAB_NAME}/certs:/etc/wazuh-dashboard/certs:ro
-      - ./labs/${LAB_NAME}/configs/wazuh-dashboard/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
-      - ./labs/${LAB_NAME}/configs/wazuh-dashboard/opensearch_dashboards.keystore:/etc/wazuh-dashboard/opensearch_dashboards.keystore
+      - ./wazuh_dashboard/certs:/etc/wazuh-dashboard/certs:ro
+      - ./wazuh_dashboard/config/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
+      - ./wazuh_dashboard/config/opensearch_dashboards.keystore:/etc/wazuh-dashboard/opensearch_dashboards.keystore
     networks:
       ${LAB_NAME}_net:
         aliases:
@@ -90,7 +90,7 @@ services:
       ${LAB_NAME}_wazuh_indexer:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-k", "http://localhost:5601"]
+      test: ["CMD-SHELL", "curl -k http://localhost:5601 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 10
@@ -105,13 +105,13 @@ services:
       MYSQL_USER: app
       MYSQL_PASSWORD: vulnerables
     volumes:
-      - ./labs/${LAB_NAME}/data/mariadb:/var/lib/mysql
+      - ./mariadb/data:/var/lib/mysql
     networks:
       ${LAB_NAME}_net:
         aliases:
           - ${LAB_NAME}_mariadb
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p$MYSQL_ROOT_PASSWORD"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$MYSQL_ROOT_PASSWORD || exit 1"]
       interval: 20s
       timeout: 5s
       retries: 10
@@ -135,7 +135,7 @@ services:
         aliases:
           - ${LAB_NAME}_dvwa
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
       interval: 20s
       timeout: 5s
       retries: 10

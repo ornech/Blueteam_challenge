@@ -3,7 +3,7 @@
 
 # Nom du script : generate.sh
 # Auteur : Jean-Francois Ornech '@ornech'
-# Description : Génère les fichiers nécessaires pour un labo
+# Description : Génère les fichiers nécessaires pour un labo (arbo par conteneur)
 
 generate_env() {
     local LAB_NAME="$1"
@@ -31,18 +31,18 @@ EOF
 
 generate_fileossec() {
     local LAB_NAME="$1"
-    local OSSEC_DIR="$2"
-    local FILEOSSEC_FILE="$OSSEC_DIR/ossec.conf"
+    local LAB_DIR="$2"
+    local FILE="$LAB_DIR/wazuh_manager/config/ossec.conf"
 
-    mkdir -p "$OSSEC_DIR"
+    mkdir -p "$(dirname "$FILE")"
 
-    if [ -f "$FILEOSSEC_FILE" ]; then
-        log_warn "$FILEOSSEC_FILE existe déjà"
+    if [ -f "$FILE" ]; then
+        log_warn "$FILE existe déjà"
         return
     fi
 
     log_info "Génération du fichier ossec.conf pour $LAB_NAME..."
-    cat > "$FILEOSSEC_FILE" <<EOF
+    cat > "$FILE" <<EOF
 <ossec_config>
   <wazuh_db>
     <indexer>
@@ -60,10 +60,61 @@ generate_fileossec() {
 </ossec_config>
 EOF
 
-    sudo chown root:root "$FILEOSSEC_FILE"
-    sudo chmod 644 "$FILEOSSEC_FILE"
+    chmod 644 "$FILE"
+    log_ok "$FILE généré"
+}
 
-    log_ok "$FILEOSSEC_FILE généré"
+generate_opensearch_disable_security() {
+    local LAB_NAME="$1"
+    local LAB_DIR="$2"
+    local FILE="$LAB_DIR/wazuh_indexer/config/opensearch-disable-security.yml"
+
+    mkdir -p "$(dirname "$FILE")"
+
+    if [ -f "$FILE" ]; then
+        log_warn "$FILE existe déjà"
+        return
+    fi
+
+    log_info "Désactivation du plugin security pour $LAB_NAME..."
+    cat > "$FILE" <<EOF
+cluster.name: wazuh-indexer
+path.data: /var/lib/wazuh-indexer
+plugins.security.disabled: true
+network.host: 0.0.0.0
+discovery.type: single-node
+EOF
+
+    chmod 644 "$FILE"
+    log_ok "$FILE généré"
+}
+
+generate_dashboard_conf() {
+    local LAB_NAME="$1"
+    local LAB_DIR="$2"
+    local CONF_DIR="$LAB_DIR/wazuh_dashboard/config"
+
+    mkdir -p "$CONF_DIR"
+
+    if [ -f "$CONF_DIR/opensearch_dashboards.yml" ]; then
+        log_warn "$CONF_DIR/opensearch_dashboards.yml existe déjà"
+        return
+    fi
+
+    log_info "Génération de la config Wazuh Dashboard pour $LAB_NAME..."
+    cat > "$CONF_DIR/opensearch_dashboards.yml" <<YML
+server.host: "0.0.0.0"
+server.port: 5601
+opensearch.hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
+opensearch.ssl.verificationMode: "none"
+opensearch.requestHeadersAllowlist: ["securitytenant","Authorization"]
+YML
+
+    touch "$CONF_DIR/opensearch_dashboards.keystore"
+    chmod 644 "$CONF_DIR/opensearch_dashboards.yml"
+    chmod 660 "$CONF_DIR/opensearch_dashboards.keystore"
+
+    log_ok "Config Dashboard générée dans $CONF_DIR"
 }
 
 generate_compose() {
@@ -105,7 +156,8 @@ EOF
 
 generate_certs() {
     local LAB_NAME="$1"
-    local CERTS_DIR="$2"
+    local LAB_DIR="$2"
+    local CERTS_DIR="$LAB_DIR/common"
     local CERTS_YML="$CERTS_DIR/certs.yml"
 
     if [ -f "$CERTS_DIR/root-ca.pem" ]; then
@@ -134,6 +186,10 @@ EOF
 
     if [ -f "$CERTS_DIR/root-ca.pem" ]; then
         log_ok "Certificats générés avec succès dans $CERTS_DIR"
+        # Créer symlinks vers les certs communs
+        ln -sfn ../common "$LAB_DIR/wazuh_manager/certs"
+        ln -sfn ../common "$LAB_DIR/wazuh_indexer/certs"
+        ln -sfn ../common "$LAB_DIR/wazuh_dashboard/certs"
     else
         log_error "Échec de génération des certificats pour $LAB_NAME"
         exit 1
