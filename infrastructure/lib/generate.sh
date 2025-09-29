@@ -245,7 +245,7 @@ output.elasticsearch:
   pipeline: "filebeat-7.10.2-wazuh-alerts-pipeline"
   index: "wazuh-alerts-%{+yyyy.MM.dd}"
   auth.digests: true
-  
+
 setup.template.enabled: false
 EOF
 
@@ -300,5 +300,44 @@ inject_filebeat_pipeline() {
               ]
             }' >/dev/null
 
+
+
     log_ok "Pipeline remove_type injecté dans $INDEXER_CONTAINER"
+}
+
+# --- Fonction : génération et initialisation du keystore Wazuh Dashboard ---
+generate_wazuh_dashboard_keystore() {
+    local lab_name="$1"
+    local dash_config_dir="$LAB_DIR/wazuh_dashboard/config"
+
+    log_info "[$lab_name] Préparation du keystore Wazuh Dashboard..."
+
+    # S'assure que le dossier existe
+    mkdir -p "$dash_config_dir"
+
+    # Corrige les permissions (UID 1000 utilisé dans wazuh-dashboard)
+    chown -R 1000:1000 "$dash_config_dir"
+
+    # Crée le keystore si absent
+    if [ ! -f "$dash_config_dir/opensearch_dashboards.keystore" ]; then
+        log_info "[$lab_name] Création du keystore..."
+        docker run --rm \
+            -u 1000:1000 \
+            -v "$dash_config_dir:/usr/share/wazuh-dashboard/config" \
+            wazuh/wazuh-dashboard:4.13.0 \
+            /usr/share/wazuh-dashboard/bin/opensearch-dashboards-keystore create --allow-root --silent --force \
+        && log_ok "[$lab_name] Keystore créé"
+    else
+        log_ok "[$lab_name] Keystore déjà présent"
+    fi
+
+    # Exemple : ajouter les credentials par défaut (si absents)
+    for key in "opensearch.username" "opensearch.password" "wazuh.api.user" "wazuh.api.password"; do
+        docker run --rm -i \
+            -u 1000:1000 \
+            -v "$dash_config_dir:/usr/share/wazuh-dashboard/config" \
+            wazuh/wazuh-dashboard:4.13.0 \
+            /usr/share/wazuh-dashboard/bin/opensearch-dashboards-keystore add "$key" --allow-root --stdin --force <<< "admin"
+        log_ok "[$lab_name] Ajout clé $key dans keystore"
+    done
 }

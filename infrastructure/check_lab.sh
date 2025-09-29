@@ -1,98 +1,52 @@
 #!/usr/bin/env bash
-# -*- coding: utf-8 -*-
-#
-# check_lab.sh
-# Vérifie montages déclarés dans labs/<lab>/docker-compose.yml
-# Usage: ./check_lab.sh <lab_name>
+# test_end2end_wazuh.sh
 
-set -euo pipefail
+LAB=lab1
+INDEXER=${LAB}_wazuh_indexer
+MANAGER=${LAB}_wazuh_manager
+FILEBEAT=${LAB}_filebeat
+DASHBOARD=${LAB}_wazuh_dashboard
 
-if [ $# -ne 1 ]; then
-  echo "Usage: $0 <lab_name>"
-  exit 1
+echo "=== Test end-to-end Wazuh (${LAB}) ==="
+
+# 1. Vérifier la version de Filebeat
+docker exec -it $FILEBEAT filebeat version
+
+# 2. Vérifier que Filebeat utilise bien le pipeline
+if docker exec -it $FILEBEAT grep -q "pipeline: \"wazuh-alerts-pipeline\"" /usr/share/filebeat/filebeat.yml; then
+  echo "✅ Filebeat pointe vers wazuh-alerts-pipeline"
+else
+  echo "❌ Filebeat ne pointe PAS vers wazuh-alerts-pipeline"
 fi
 
-LAB_NAME="$1"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LAB_DIR="$SCRIPT_DIR/labs/$LAB_NAME"
-COMPOSE_FILE="$LAB_DIR/docker-compose.yml"
+# 3. Injection d’un faux log JSON dans les logs de Wazuh
+echo '{"timestamp":"2025-09-29T15:45:00Z","rule":{"id":"100001","level":3},"agent":{"id":"001"},"data":{"srcip":"1.2.3.4"}}' \
+  | docker exec -i $MANAGER tee -a /var/ossec/logs/alerts/alerts.json >/dev/null
+echo "✅ Faux log injecté dans Wazuh"
 
-CSI='\033['
-RESET="${CSI}0m"
-GREEN="${CSI}32m"
-RED="${CSI}31m"
-YELLOW="${CSI}33m"
-BLUE="${CSI}34m"
+# 4. Attendre que Filebeat envoie
+sleep 5
 
-log_info(){ echo -e "${BLUE}[INFO]${RESET} $*"; }
-log_ok(){   echo -e "${GREEN}[ OK ]${RESET}  $*"; }
-log_err(){  echo -e "${RED}[ERR ]${RESET} $*"; }
-log_warn(){ echo -e "${YELLOW}[WARN]${RESET} $*"; }
-
-# Basic checks
-log_info "Vérification des fichiers de configuration..."
-if [ ! -f "$COMPOSE_FILE" ]; then
-  log_err "docker-compose absent : $COMPOSE_FILE"
-  exit 1
+# 5. Vérifier que le document est dans l’index
+if docker exec -it $INDEXER curl -s "http://localhost:9200/wazuh-alerts-*/_search?q=data.srcip:1.2.3.4&pretty" | grep -q '"hits"'; then
+  echo "✅ Document retrouvé dans l’index"
+else
+  echo "❌ Aucun document retrouvé"
 fi
-log_ok "docker-compose trouvé : $COMPOSE_FILE"
 
-[ -f "$LAB_DIR/${LAB_NAME}.env" ] && log_ok ".env trouvé : $LAB_DIR/${LAB_NAME}.env" || log_warn ".env manquant : $LAB_DIR/${LAB_NAME}.env"
-[ -f "$LAB_DIR/configs/ossec/ossec.conf" ] && log_ok "ossec.conf trouvé : $LAB_DIR/configs/ossec/ossec.conf" || log_warn "ossec.conf manquant : $LAB_DIR/configs/ossec/ossec.conf"
-[ -f "$LAB_DIR/configs/wazuh-dashboard/opensearch_dashboards.yml" ] && log_ok "opensearch_dashboards.yml trouvé" || log_warn "opensearch_dashboards.yml manquant"
+# 6. Vérifier que le Dashboard est up
+if docker exec -it $DASHBOARD curl -s -o /dev/null -w "%{http_code}" http://localhost:5601 | grep -q "200"; then
+  echo "✅ Dashboard répond sur le port 5601"
+else
+  echo "❌ Dashboard ne répond pas"
+fi
 
-log_info "Vérification des montages déclarés dans $COMPOSE_FILE ..."
-echo
+# 7. Vérifier que le Dashboard “voit” bien l’index
+if docker exec -it $INDEXER curl -s "http://localhost:9200/_cat/indices?v" | grep -q "wazuh-alerts"; then
+  echo "✅ Dashboard devrait voir l’index wazuh-alerts-*"
+else
+  echo "❌ Aucun index wazuh-alerts-* détecté"
+fi
 
-# We only match lines that look like docker volume mounts starting with - ./ or - / (ignore env lines)
-# grep with line numbers then parse safely in bash
-grep -nE '^\s*-\s*(\./|/)' "$COMPOSE_FILE" || true | while IFS=: read -r lineno rawline; do
-    # rawline contains the whole line, e.g. "    - ./labs/lab1/data/wazuh_manager:/var/ossec/data"
-    # normalize: remove leading whitespace and leading '-'
-    line="$(echo "$rawline" | sed -E 's/^[[:space:]]*-[[:space:]]*//')"
+echo "=== Fin du test ==="
 
-    # Extract host (before first ':') and container (after first ':')
-    host_part="${line%%:*}"                # shortest substring before first colon
-    container_part="${line#${host_part}:}" # rest after first colon (may contain more colons like :ro)
-
-    # Trim spaces
-    host_part="$(echo -n "$host_part" | xargs)"
-    container_part="$(echo -n "$container_part" | xargs)"
-
-    # If container_part begins with a colon (unlikely), strip
-    container_part="${container_part#/:}"
-    # Determine resolved host path
-    if [[ "$host_part" == .* ]]; then
-        # relative path -> interpret relative to SCRIPT_DIR (repo root)
-        resolved_host="$SCRIPT_DIR/${host_part#./}"
-    else
-        resolved_host="$host_part"
-    fi
-
-    # Print info
-    echo
-    log_info "Ligne $lineno → $rawline"
-    printf "    ↳ Host (déclaré)     : %s\n" "$host_part"
-    printf "    ↳ Host (résolu)      : %s\n" "$resolved_host"
-    printf "    ↳ Container (dest)   : %s\n" "$container_part"
-
-    # Existence check
-    if [ -e "$resolved_host" ]; then
-        if [ -d "$resolved_host" ]; then
-            log_ok "Présent sur l’hôte (dir) : $resolved_host"
-        elif [ -f "$resolved_host" ]; then
-            log_ok "Présent sur l’hôte (fichier) : $resolved_host"
-        else
-            log_ok "Présent sur l’hôte (autre type) : $resolved_host"
-        fi
-    else
-        log_err "Manquant sur l’hôte : $resolved_host (attendu pour $container_part)"
-        # give a hint for common permission issue
-        if [ -d "$(dirname "$resolved_host")" ] && ! [ -w "$(dirname "$resolved_host")" ]; then
-            log_warn "Le répertoire parent $(dirname "$resolved_host") n'est peut-être pas inscriptible : problème de permissions."
-        fi
-    fi
-done
-
-echo
-log_info "Contrôle terminé pour $LAB_NAME."

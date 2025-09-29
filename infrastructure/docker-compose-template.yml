@@ -79,7 +79,7 @@ services:
     volumes:
       - ./wazuh_dashboard/certs:/etc/wazuh-dashboard/certs:ro
       - ./wazuh_dashboard/config/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
-      - ./wazuh_dashboard/config/opensearch_dashboards.keystore:/etc/wazuh-dashboard/opensearch_dashboards.keystore
+      - ./wazuh_dashboard/config/opensearch_dashboards.keystore:/usr/share/wazuh-dashboard/data/opensearch_dashboards.keystore
     networks:
       ${LAB_NAME}_net:
         aliases:
@@ -155,9 +155,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-
-
-
 
 networks:
   ${LAB_NAME}_net:
