@@ -244,7 +244,8 @@ output.elasticsearch:
   password: "admin"
   pipeline: "filebeat-7.10.2-wazuh-alerts-pipeline"
   index: "wazuh-alerts-%{+yyyy.MM.dd}"
-
+  auth.digests: true
+  
 setup.template.enabled: false
 EOF
 
