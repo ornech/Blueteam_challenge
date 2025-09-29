@@ -98,6 +98,9 @@ else
     log_warn "Erreur dans la configuration Nginx; reload annulé."
 fi
 
+# Après "docker compose up -d"
+inject_wazuh_template "$LAB_NAME"
+
 # -------- Infos --------
 log_ok "Lab ${LAB_NAME} déployé !"
 echo

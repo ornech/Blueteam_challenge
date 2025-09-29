@@ -29,6 +29,7 @@ EOF
     log_ok ".env généré : $ENV_FILE"
 }
 
+
 generate_fileossec() {
     local LAB_NAME="$1"
     local LAB_DIR="$2"
@@ -42,19 +43,31 @@ generate_fileossec() {
     log_info "Génération du fichier ossec.conf pour $LAB_NAME..."
     cat > "$FILE" <<EOF
 <ossec_config>
-  <wazuh_db>
-    <indexer>
-      <enabled>yes</enabled>
-      <hosts>
-        <host>http://${LAB_NAME}_wazuh_indexer:9200</host>
-      </hosts>
-      <user>admin</user>
-      <password>admin</password>
-      <ssl>
-        <verify_peer>no</verify_peer>
-      </ssl>
-    </indexer>
-  </wazuh_db>
+  <global>
+    <jsonout_output>yes</jsonout_output>
+    <alerts_log>yes</alerts_log>
+  </global>
+
+  <remote>
+    <connection>secure</connection>
+    <port>1514</port>
+    <protocol>udp</protocol>
+  </remote>
+
+  <indexer>
+    <enabled>yes</enabled>
+    <hosts>
+      <host>http://${LAB_NAME}_wazuh_indexer:9200</host>
+    </hosts>
+    <!--
+    <ssl>
+      <certificate_authorities>/etc/wazuh-manager/certs/root-ca.pem</certificate_authorities>
+      <certificate>/etc/wazuh-manager/certs/admin.pem</certificate>
+      <key>/etc/wazuh-manager/certs/admin-key.pem</key>
+      <verification_mode>none</verification_mode>
+    </ssl>
+    -->
+  </indexer>
 </ossec_config>
 EOF
 
@@ -62,12 +75,14 @@ EOF
     log_ok "$FILE généré"
 }
 
+
+
 generate_opensearch_disable_security() {
     local LAB_NAME="$1"
     local LAB_DIR="$2"
     local FILE="$LAB_DIR/wazuh_indexer/config/opensearch-disable-security.yml"
 
-    if [ -f "$FILE" ]; then
+    if [ -f "$FILE" ]; then 
         log_warn "$FILE existe déjà"
         return
     fi
@@ -191,5 +206,37 @@ EOF
     else
         log_error "Échec de génération des certificats pour $LAB_NAME"
         exit 1
+    fi
+}
+
+# 
+# Inject Wazuh template into OpenSearch (to be run after the indexer is up)
+inject_wazuh_template() {
+    local LAB_NAME="$1"
+    local INDEXER_CONTAINER="${LAB_NAME}_wazuh_indexer"
+
+    log_info "Injection du template Wazuh dans l'indexer ($INDEXER_CONTAINER)..."
+
+    docker exec -i "$INDEXER_CONTAINER" curl -s -u admin:admin \
+        -X PUT "http://localhost:9200/_template/wazuh" \
+        -H 'Content-Type: application/json' \
+        -d '{
+              "index_patterns":["wazuh-alerts-*"],
+              "settings":{"index":{"number_of_shards":1,"number_of_replicas":0}},
+              "mappings":{
+                "properties":{
+                  "timestamp":{"type":"date"},
+                  "rule":{"type":"object"},
+                  "agent":{"type":"object"},
+                  "manager":{"type":"object"},
+                  "data":{"type":"object"}
+                }
+              }
+            }' >/dev/null
+
+    if [ $? -eq 0 ]; then
+        log_ok "Template Wazuh injecté avec succès dans $INDEXER_CONTAINER"
+    else
+        log_warn "Échec de l'injection du template Wazuh dans $INDEXER_CONTAINER"
     fi
 }
