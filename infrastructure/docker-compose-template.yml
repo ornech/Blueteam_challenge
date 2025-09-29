@@ -141,7 +141,7 @@ services:
       retries: 10
 
   ${LAB_NAME}_filebeat:
-    image: wazuh/filebeat:7.10.2
+    image: docker.elastic.co/beats/filebeat:7.10.2
     container_name: ${LAB_NAME}_filebeat
     restart: always
     user: root
@@ -150,14 +150,12 @@ services:
       - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
     networks:
       - ${LAB_NAME}_net
-    depends_on:
-      ${LAB_NAME}_wazuh_indexer:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "filebeat test config -c /usr/share/filebeat/filebeat.yml || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
+
 
 
 
