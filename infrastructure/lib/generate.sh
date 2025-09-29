@@ -242,8 +242,10 @@ output.elasticsearch:
   hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
   username: "admin"
   password: "admin"
-  pipeline: "remove_type"
+  pipeline: "filebeat-7.10.2-wazuh-alerts-pipeline"
   index: "wazuh-alerts-%{+yyyy.MM.dd}"
+
+setup.template.enabled: false
 EOF
 
   sudo chown root:root "./labs/$LAB_NAME/filebeat/filebeat.yml"
