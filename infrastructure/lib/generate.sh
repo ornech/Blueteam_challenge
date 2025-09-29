@@ -8,7 +8,8 @@
 generate_env() {
     local LAB_NAME="$1"
     local LAB_DIR="$2"
-    local LAB_NUM=$(echo "$LAB_NAME" | grep -o '[0-9]*$' || echo "1")
+    local LAB_NUM
+    LAB_NUM=$(echo "$LAB_NAME" | grep -o '[0-9]*$' || echo "1")
     local ENV_FILE="$LAB_DIR/${LAB_NAME}.env"
 
     if [ -f "$ENV_FILE" ]; then
@@ -28,7 +29,6 @@ WAZUH_PORT_5601=$((5600 + LAB_NUM))
 EOF
     log_ok ".env généré : $ENV_FILE"
 }
-
 
 generate_fileossec() {
     local LAB_NAME="$1"
@@ -59,14 +59,6 @@ generate_fileossec() {
     <hosts>
       <host>http://${LAB_NAME}_wazuh_indexer:9200</host>
     </hosts>
-    <!--
-    <ssl>
-      <certificate_authorities>/etc/wazuh-manager/certs/root-ca.pem</certificate_authorities>
-      <certificate>/etc/wazuh-manager/certs/admin.pem</certificate>
-      <key>/etc/wazuh-manager/certs/admin-key.pem</key>
-      <verification_mode>none</verification_mode>
-    </ssl>
-    -->
   </indexer>
 </ossec_config>
 EOF
@@ -74,8 +66,6 @@ EOF
     chmod 644 "$FILE"
     log_ok "$FILE généré"
 }
-
-
 
 generate_opensearch_disable_security() {
     local LAB_NAME="$1"
@@ -99,7 +89,6 @@ EOF
     chmod 644 "$FILE"
     log_ok "$FILE généré"
 }
-
 
 generate_dashboard_conf() {
     local LAB_NAME="$1"
@@ -167,12 +156,11 @@ EOF
 generate_certs() {
     local LAB_NAME="$1"
     local LAB_DIR="$2"
-    local CERTS_DIR="$LAB_DIR/common"          # <-- PAS $LAB_DIR/certs/common
+    local CERTS_DIR="$LAB_DIR/common"
     local CERTS_YML="$CERTS_DIR/certs.yml"
 
     if [ -f "$CERTS_DIR/root-ca.pem" ]; then
         log_ok "Certificats déjà présents pour $LAB_NAME → on les réutilise"
-        # ensure symlinks exist
         ln -sfn ../common "$LAB_DIR/wazuh_manager/certs"
         ln -sfn ../common "$LAB_DIR/wazuh_indexer/certs"
         ln -sfn ../common "$LAB_DIR/wazuh_dashboard/certs"
@@ -209,8 +197,6 @@ EOF
     fi
 }
 
-# 
-# Inject Wazuh template into OpenSearch (to be run after the indexer is up)
 inject_wazuh_template() {
     local LAB_NAME="$1"
     local INDEXER_CONTAINER="${LAB_NAME}_wazuh_indexer"
@@ -234,9 +220,82 @@ inject_wazuh_template() {
               }
             }' >/dev/null
 
-    if [ $? -eq 0 ]; then
-        log_ok "Template Wazuh injecté avec succès dans $INDEXER_CONTAINER"
-    else
-        log_warn "Échec de l'injection du template Wazuh dans $INDEXER_CONTAINER"
-    fi
+    log_ok "Template Wazuh injecté avec succès dans $INDEXER_CONTAINER"
+}
+
+generate_filebeat_config() {
+  local LAB_NAME="$1"
+
+  log_info "Génération du fichier filebeat.yml pour $LAB_NAME..."
+  mkdir -p "./labs/$LAB_NAME/filebeat"
+
+  cat > "./labs/$LAB_NAME/filebeat/filebeat.yml" <<EOF
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      - /var/ossec/logs/alerts/alerts.json
+    json.keys_under_root: true
+    json.add_error_key: true
+
+output.elasticsearch:
+  hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
+  username: "admin"
+  password: "admin"
+  pipeline: "remove_type"
+  index: "wazuh-alerts-%{+yyyy.MM.dd}"
+EOF
+
+  sudo chown root:root "./labs/$LAB_NAME/filebeat/filebeat.yml"
+  sudo chmod 644 "./labs/$LAB_NAME/filebeat/filebeat.yml"
+
+  log_ok "fichier filebeat.yml généré et permissions corrigées"
+}
+
+disable_manager_filebeat() {
+  local LAB_NAME="$1"
+  local CONF_FILE="./labs/$LAB_NAME/wazuh_manager/config/ossec.conf"
+
+  log_info "Désactivation du Filebeat intégré dans le manager ($LAB_NAME)..."
+
+  cp "$CONF_FILE" "${CONF_FILE}.bak"
+
+  cat > "$CONF_FILE" <<EOF
+<ossec_config>
+  <global>
+    <jsonout_output>yes</jsonout_output>
+    <alerts_log>yes</alerts_log>
+  </global>
+
+  <remote>
+    <connection>secure</connection>
+    <port>1514</port>
+    <protocol>udp</protocol>
+  </remote>
+</ossec_config>
+EOF
+
+  sudo chown root:root "$CONF_FILE"
+  sudo chmod 644 "$CONF_FILE"
+
+  log_ok "Filebeat désactivé dans le manager, config sauvegardée dans ${CONF_FILE}.bak"
+}
+
+inject_filebeat_pipeline() {
+    local LAB_NAME="$1"
+    local INDEXER_CONTAINER="${LAB_NAME}_wazuh_indexer"
+
+    log_info "Injection du pipeline Ingest remove_type dans $INDEXER_CONTAINER..."
+
+    docker exec -i "$INDEXER_CONTAINER" curl -s -u admin:admin \
+        -X PUT "http://localhost:9200/_ingest/pipeline/remove_type" \
+        -H 'Content-Type: application/json' \
+        -d '{
+              "description": "Supprime le champ _type obsolète",
+              "processors": [
+                { "remove": { "field": "_type", "ignore_missing": true } }
+              ]
+            }' >/dev/null
+
+    log_ok "Pipeline remove_type injecté dans $INDEXER_CONTAINER"
 }

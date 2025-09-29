@@ -1,6 +1,3 @@
-version: "3.8"
-
-services:
   ${LAB_NAME}_wazuh_manager:
     image: wazuh/wazuh-manager:4.13.0
     container_name: ${LAB_NAME}_wazuh_manager
@@ -8,15 +5,13 @@ services:
     restart: always
     environment:
       - WAZUH_CLUSTER_KEY=ClusterKey123
-      - INDEXER_URL=http://${LAB_NAME}_wazuh_indexer:9200
-      - INDEXER_USERNAME=admin
-      - INDEXER_PASSWORD=admin
     ports:
       - "${WAZUH_PORT_1514}:1514/udp"
       - "${WAZUH_PORT_1515}:1515"
       - "${WAZUH_PORT_55000}:55000"
     volumes:
       - ./wazuh_manager/data:/var/ossec/data
+      - ./wazuh_manager/logs:/var/ossec/logs
       - ./wazuh_manager/config/ossec.conf:/var/ossec/etc/ossec.conf:ro
       - ./wazuh_manager/certs:/etc/wazuh-manager/certs:ro
     networks:
@@ -140,7 +135,24 @@ services:
       timeout: 5s
       retries: 10
 
+  ${LAB_NAME}_filebeat:
+    image: docker.elastic.co/beats/filebeat:8.10.2
+    container_name: ${LAB_NAME}_filebeat
+    restart: always
+    user: root
+    volumes:
+      - ./wazuh_manager/logs:/var/ossec/logs:ro
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+    networks:
+      - ${LAB_NAME}_net
+    healthcheck:
+      test: ["CMD-SHELL", "filebeat test config -c /usr/share/filebeat/filebeat.yml || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+
 networks:
   ${LAB_NAME}_net:
     name: ${COMPOSE_PROJECT_NAME}_${LAB_NAME}_net
-    external: true
+    driver: bridge
