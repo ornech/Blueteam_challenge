@@ -102,6 +102,7 @@ fi
 
 # Après "docker compose up -d"
 inject_wazuh_template "$LAB_NAME"
+inject_filebeat_pipeline "$LAB_NAME"
 
 # -------- Infos --------
 log_ok "Lab ${LAB_NAME} déployé !"
