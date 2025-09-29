@@ -85,6 +85,7 @@ EOF
     log_ok "$FILE généré"
 }
 
+
 generate_dashboard_conf() {
     local LAB_NAME="$1"
     local LAB_DIR="$2"
