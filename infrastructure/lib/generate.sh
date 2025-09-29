@@ -34,8 +34,6 @@ generate_fileossec() {
     local LAB_DIR="$2"
     local FILE="$LAB_DIR/wazuh_manager/config/ossec.conf"
 
-    mkdir -p "$(dirname "$FILE")"
-
     if [ -f "$FILE" ]; then
         log_warn "$FILE existe déjà"
         return
@@ -69,8 +67,6 @@ generate_opensearch_disable_security() {
     local LAB_DIR="$2"
     local FILE="$LAB_DIR/wazuh_indexer/config/opensearch-disable-security.yml"
 
-    mkdir -p "$(dirname "$FILE")"
-
     if [ -f "$FILE" ]; then
         log_warn "$FILE existe déjà"
         return
@@ -93,8 +89,6 @@ generate_dashboard_conf() {
     local LAB_NAME="$1"
     local LAB_DIR="$2"
     local CONF_DIR="$LAB_DIR/wazuh_dashboard/config"
-
-    mkdir -p "$CONF_DIR"
 
     if [ -f "$CONF_DIR/opensearch_dashboards.yml" ]; then
         log_warn "$CONF_DIR/opensearch_dashboards.yml existe déjà"
@@ -157,16 +151,20 @@ EOF
 generate_certs() {
     local LAB_NAME="$1"
     local LAB_DIR="$2"
-    local CERTS_DIR="$LAB_DIR/common"
+    local CERTS_DIR="$LAB_DIR/common"          # <-- PAS $LAB_DIR/certs/common
     local CERTS_YML="$CERTS_DIR/certs.yml"
 
     if [ -f "$CERTS_DIR/root-ca.pem" ]; then
         log_ok "Certificats déjà présents pour $LAB_NAME → on les réutilise"
+        # ensure symlinks exist
+        ln -sfn ../common "$LAB_DIR/wazuh_manager/certs"
+        ln -sfn ../common "$LAB_DIR/wazuh_indexer/certs"
+        ln -sfn ../common "$LAB_DIR/wazuh_dashboard/certs"
         return
     fi
 
-    mkdir -p "$CERTS_DIR"
     log_info "Génération des certificats pour $LAB_NAME..."
+    mkdir -p "$CERTS_DIR"
 
     if [ ! -f "$CERTS_YML" ]; then
         cat > "$CERTS_YML" <<EOF
@@ -186,7 +184,6 @@ EOF
 
     if [ -f "$CERTS_DIR/root-ca.pem" ]; then
         log_ok "Certificats générés avec succès dans $CERTS_DIR"
-        # Créer symlinks vers les certs communs
         ln -sfn ../common "$LAB_DIR/wazuh_manager/certs"
         ln -sfn ../common "$LAB_DIR/wazuh_indexer/certs"
         ln -sfn ../common "$LAB_DIR/wazuh_dashboard/certs"
