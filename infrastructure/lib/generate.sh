@@ -242,8 +242,7 @@ output.elasticsearch:
   pipeline: "remove_type"
 
 setup.template.enabled: false
-setup.ilm.enabled: false
-
+ 
 EOF
 
   sudo chown root:root "./labs/$LAB_NAME/filebeat/filebeat.yml"
