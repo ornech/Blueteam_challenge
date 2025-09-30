@@ -79,7 +79,6 @@ generate_opensearch_disable_security() {
 
     log_info "Désactivation du plugin security pour $LAB_NAME..."
     cat > "$FILE" <<EOF
-cluster.name: wazuh-indexer
 path.data: /var/lib/wazuh-indexer
 plugins.security.disabled: true
 network.host: 0.0.0.0
@@ -239,11 +238,11 @@ output.elasticsearch:
   hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
   username: "admin"
   password: "admin"
-  pipeline: "filebeat-7.10.2-wazuh-alerts-pipeline"
   index: "wazuh-alerts-%{+yyyy.MM.dd}"
-  auth.digests: true
+  pipeline: "remove_type"
 
 setup.template.enabled: false
+
 EOF
 
   sudo chown root:root "./labs/$LAB_NAME/filebeat/filebeat.yml"

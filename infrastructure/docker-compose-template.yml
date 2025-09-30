@@ -10,6 +10,8 @@ services:
       - INDEXER_URL=http://${LAB_NAME}_wazuh_indexer:9200
       - INDEXER_USERNAME=admin
       - INDEXER_PASSWORD=admin
+      # Désactive filebeat dans le manager (on utilise un conteneur filebeat séparé)
+      - DISABLE_FILEBEAT=true
     ports:
       - "${WAZUH_PORT_1514}:1514/udp"
       - "${WAZUH_PORT_1515}:1515"
@@ -36,7 +38,7 @@ services:
     restart: always
     environment:
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-      - cluster.name=${LAB_NAME}-cluster
+      # - cluster.name=${LAB_NAME}-cluster
       - node.name=${LAB_NAME}_wazuh_indexer
       - plugins.security.disabled=true
       - network.host=0.0.0.0
@@ -141,13 +143,16 @@ services:
       retries: 10
 
   ${LAB_NAME}_filebeat:
-    image: docker.elastic.co/beats/filebeat:7.10.2
+    image: docker.elastic.co/beats/filebeat-oss:8.10.4
     container_name: ${LAB_NAME}_filebeat
-    restart: always
     user: root
     volumes:
+      # Logs du manager (alertes.json)
       - ./wazuh_manager/logs:/var/ossec/logs:ro
+      # Config Filebeat
       - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      # Data persistante de filebeat
+      - ./filebeat/data:/usr/share/filebeat/data
     networks:
       - ${LAB_NAME}_net
     healthcheck:

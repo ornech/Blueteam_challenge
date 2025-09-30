@@ -45,7 +45,8 @@ mkdir -p "$LAB_DIR/wazuh_manager/config" "$LAB_DIR/wazuh_manager/data" "$LAB_DIR
          "$LAB_DIR/wazuh_dashboard/config" "$LAB_DIR/wazuh_dashboard/certs" \
          "$LAB_DIR/mariadb/data" \
          "$LAB_DIR/dvwa" \
-         "$LAB_DIR/common"
+         "$LAB_DIR/common" \
+         "$LAB_DIR/filebeat/data"
 
 log_ok "Dossiers prêts : $LAB_DIR"
 
@@ -101,7 +102,25 @@ else
 fi
 
 # Après "docker compose up -d"
-inject_wazuh_template "$LAB_NAME"
+# inject_wazuh_template "$LAB_NAME"
+
+# -------- Wait for indexer --------
+INDEXER_URL="http://localhost:9200/_cluster/health"
+INDEXER_CONTAINER="${LAB_NAME}_wazuh_indexer"
+
+log_info "Attente que l’indexer soit prêt ($INDEXER_CONTAINER)..."
+
+for i in {1..30}; do
+    if docker exec "$INDEXER_CONTAINER" curl -s --fail "$INDEXER_URL" | grep -q '"status":"green"\|"status":"yellow"'; then
+        log_ok "Indexer prêt (status green/yellow)"
+        break
+    else
+        log_info "Indexer pas encore prêt... tentative $i/30"
+        sleep 5
+    fi
+done
+
+
 inject_filebeat_pipeline "$LAB_NAME"
 
 # -------- Infos --------
