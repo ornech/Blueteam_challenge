@@ -221,11 +221,12 @@ inject_wazuh_template() {
 
 generate_filebeat_config() {
   local LAB_NAME="$1"
+  local LAB_DIR="$2"
 
   log_info "Génération du fichier filebeat.yml pour $LAB_NAME..."
-  mkdir -p "./labs/$LAB_NAME/filebeat"
+  mkdir -p "$LAB_DIR/filebeat"
 
-  cat > "./labs/$LAB_NAME/filebeat/filebeat.yml" <<EOF
+  cat > "$LAB_DIR/filebeat/filebeat.yml" <<EOF
 filebeat.inputs:
   - type: log
     enabled: true
@@ -233,9 +234,10 @@ filebeat.inputs:
       - /var/ossec/logs/alerts/alerts.json
     json.keys_under_root: true
     json.add_error_key: true
+    json.message_key: log
 
 output.elasticsearch:
-  hosts: ["http://lab1_wazuh_indexer:9200"]
+  hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
   username: "admin"
   password: "admin"
   index: "wazuh-alerts-%{+yyyy.MM.dd}"
@@ -243,14 +245,14 @@ output.elasticsearch:
 
 setup.template.enabled: false
 setup.ilm.enabled: false
-
 EOF
 
-  sudo chown root:root "./labs/$LAB_NAME/filebeat/filebeat.yml"
-  sudo chmod 644 "./labs/$LAB_NAME/filebeat/filebeat.yml"
+  sudo chown root:root "$LAB_DIR/filebeat/filebeat.yml"
+  sudo chmod 644 "$LAB_DIR/filebeat/filebeat.yml"
 
   log_ok "fichier filebeat.yml généré et permissions corrigées"
 }
+
 
 disable_manager_filebeat() {
   local LAB_NAME="$1"

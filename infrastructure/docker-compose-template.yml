@@ -143,23 +143,30 @@ services:
       retries: 10
 
   ${LAB_NAME}_filebeat:
-    image: docker.elastic.co/beats/filebeat-oss:7.10.2
+    image: docker.elastic.co/beats/filebeat:8.15.2
     container_name: ${LAB_NAME}_filebeat
     user: root
+    restart: always
     volumes:
       # Logs du manager (alertes.json)
       - ./wazuh_manager/logs:/var/ossec/logs:ro
-      # Config Filebeat
+      # Config Filebeat générée automatiquement
       - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
-      # Data persistante de filebeat
+      # Data persistante de Filebeat (registry)
       - ./filebeat/data:/usr/share/filebeat/data
     networks:
-      - ${LAB_NAME}_net
+      ${LAB_NAME}_net:
+        aliases:
+          - ${LAB_NAME}_filebeat
+    depends_on:
+      ${LAB_NAME}_wazuh_indexer:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "filebeat test config -c /usr/share/filebeat/filebeat.yml || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
+
 
 networks:
   ${LAB_NAME}_net:
