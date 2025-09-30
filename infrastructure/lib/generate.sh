@@ -235,13 +235,14 @@ filebeat.inputs:
     json.add_error_key: true
 
 output.elasticsearch:
-  hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
+  hosts: ["http://lab1_wazuh_indexer:9200"]
   username: "admin"
   password: "admin"
   index: "wazuh-alerts-%{+yyyy.MM.dd}"
   pipeline: "remove_type"
 
 setup.template.enabled: false
+setup.ilm.enabled: false
 
 EOF
 
