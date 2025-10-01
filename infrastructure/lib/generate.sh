@@ -253,3 +253,53 @@ generate_wazuh_dashboard_keystore() {
         log_ok "[$lab_name] Ajout clé $key dans keystore"
     done
 }
+
+
+generate_filebeat_config() {
+    local LAB_NAME="$1"
+    local LAB_DIR="$2"
+    local FILE="$LAB_DIR/filebeat/filebeat.yml"
+
+    mkdir -p "$LAB_DIR/filebeat"
+
+    if [ -f "$FILE" ]; then
+        log_warn "$FILE existe déjà"
+        return
+    fi
+
+    log_info "Génération du fichier filebeat.yml pour $LAB_NAME..."
+    cat > "$FILE" <<EOF
+# Filebeat configuration pour Wazuh Manager
+filebeat.modules:
+  - module: wazuh
+    alerts:
+      enabled: true
+      var.paths: ["/var/ossec/logs/alerts/alerts.json"]
+    archives:
+      enabled: false
+
+setup.template.json.enabled: true
+setup.template.overwrite: true
+setup.template.json.path: "/etc/filebeat/wazuh-template.json"
+setup.template.json.name: "wazuh"
+setup.ilm.enabled: false
+
+output.elasticsearch:
+  hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
+  username: "admin"
+  password: "admin"
+  pipeline: "wazuh-remove-type"
+
+logging.metrics.enabled: false
+
+seccomp:
+  default_action: allow
+  syscalls:
+    - action: allow
+      names:
+        - rseq
+EOF
+
+    chmod 644 "$FILE"
+    log_ok "Config Filebeat générée : $FILE"
+}
