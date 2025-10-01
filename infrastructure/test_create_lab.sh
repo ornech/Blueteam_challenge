@@ -8,9 +8,9 @@ LIB_DIR="$SCRIPT_DIR/lib"
 # Charger les libs
 source "$LIB_DIR/logging.sh"
 source "$LIB_DIR/network.sh"
-source "$LIB_DIR/proxy.sh"
+#source "$LIB_DIR/proxy.sh"
 source "$LIB_DIR/generate.sh"
-source "$LIB_DIR/cleanup.sh"
+#source "$LIB_DIR/cleanup.sh"
 
 # -------- Defaults --------
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-blueteam}"

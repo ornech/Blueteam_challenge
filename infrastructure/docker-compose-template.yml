@@ -6,12 +6,10 @@ services:
     restart: always
     environment:
       - WAZUH_CLUSTER_KEY=ClusterKey123
-      ## dernière modification
+      # ← vers indexer en HTTP car sécurité désactivée côté indexer
       - INDEXER_URL=http://${LAB_NAME}_wazuh_indexer:9200
       - INDEXER_USERNAME=admin
       - INDEXER_PASSWORD=admin
-      # Désactive filebeat dans le manager (on utilise un conteneur filebeat séparé)
-      - DISABLE_FILEBEAT=true
     ports:
       - "${WAZUH_PORT_1514}:1514/udp"
       - "${WAZUH_PORT_1515}:1515"
@@ -23,9 +21,9 @@ services:
       - ./wazuh_manager/certs:/etc/wazuh-manager/certs:ro
     networks:
       ${LAB_NAME}_net:
-        aliases:
-          - ${LAB_NAME}_wazuh_manager
+        aliases: [ ${LAB_NAME}_wazuh_manager ]
     healthcheck:
+      # Si ça échoue, passe en https://localhost:55000 -k
       test: ["CMD-SHELL", "curl -k http://localhost:55000 || exit 1"]
       interval: 20s
       timeout: 5s
@@ -38,20 +36,13 @@ services:
     restart: always
     environment:
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-      # - cluster.name=${LAB_NAME}-cluster
       - node.name=${LAB_NAME}_wazuh_indexer
       - plugins.security.disabled=true
       - network.host=0.0.0.0
-    security_opt:
-      - seccomp:unconfined
     ulimits:
       nproc: 65535
-      nofile:
-        soft: 65535
-        hard: 65535
-      memlock:
-        soft: -1
-        hard: -1
+      nofile: { soft: 65535, hard: 65535 }
+      memlock: { soft: -1, hard: -1 }
     volumes:
       - ./wazuh_indexer/data:/var/lib/wazuh-indexer
       - ./wazuh_indexer/config/opensearch-disable-security.yml:/usr/share/wazuh-indexer/opensearch.yml:ro
@@ -60,7 +51,7 @@ services:
       ${LAB_NAME}_net:
         aliases: [ ${LAB_NAME}_wazuh_indexer, wazuh.indexer ]
     healthcheck:
-      test: ["CMD-SHELL", "curl -k http://localhost:9200/_cluster/health || exit 1"]
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1"]
       interval: 20s
       timeout: 5s
       retries: 10

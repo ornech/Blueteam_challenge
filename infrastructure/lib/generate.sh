@@ -242,6 +242,8 @@ output.elasticsearch:
   password: "admin"
   index: "wazuh-alerts-%{+yyyy.MM.dd}"
   pipeline: "remove_type"
+  allow_older_versions: true
+
 
 setup.template.enabled: false
 setup.ilm.enabled: false
@@ -288,6 +290,19 @@ inject_filebeat_pipeline() {
     local INDEXER_CONTAINER="${LAB_NAME}_wazuh_indexer"
 
     log_info "Injection du pipeline Ingest remove_type dans $INDEXER_CONTAINER..."
+
+
+    docker exec -i lab1_wazuh_indexer curl -s -X PUT "http://localhost:9200/_ingest/pipeline/remove_type" \
+         -H 'Content-Type: application/json' \
+         -d '{
+                "description": "Supprime le champ _type obsolète",
+                "processors": [
+                { "remove": { "field": "_type", "ignore_missing": true } }
+                ]
+            }'  >/dev/null 2>&1
+
+
+    
 
     docker exec -i "$INDEXER_CONTAINER" curl -s -u admin:admin \
         -X PUT "http://localhost:9200/_ingest/pipeline/remove_type" \
