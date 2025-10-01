@@ -204,14 +204,15 @@ inject_filebeat_pipeline() {
     log_info "Injection du pipeline ingest 'wazuh-remove-type' dans $INDEXER_CONTAINER..."
 
     docker exec -i "$INDEXER_CONTAINER" curl -s \
-        -X PUT "http://localhost:9200/_ingest/pipeline/wazuh-remove-type" \
-        -H 'Content-Type: application/json' \
-        -d '{
-              "description": "Supprime le champ _type obsolète",
-              "processors": [
-                { "remove": { "field": "_type", "ignore_missing": true } }
-              ]
-            }' >/dev/null \
+    -X PUT "http://localhost:9200/_ingest/pipeline/wazuh-remove-type" \
+    -H 'Content-Type: application/json' \
+    -d '{
+            "description": "Supprime le champ _type obsolète",
+            "processors": [
+            { "remove": { "field": "_type", "ignore_missing": true } }
+            ]
+        }'
+
     && log_ok "Pipeline 'wazuh-remove-type' injecté dans $INDEXER_CONTAINER" \
     || log_error "Échec de l’injection du pipeline dans $INDEXER_CONTAINER"
 }
@@ -289,6 +290,7 @@ output.elasticsearch:
   username: "admin"
   password: "admin"
   pipeline: "wazuh-remove-type"
+  allow_older_versions: false
 
 logging.metrics.enabled: false
 
