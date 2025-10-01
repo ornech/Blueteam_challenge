@@ -1,4 +1,4 @@
-services:
+sservices:
   ${LAB_NAME}_wazuh_manager:
     image: wazuh/wazuh-manager:4.13.0
     container_name: ${LAB_NAME}_wazuh_manager
@@ -9,7 +9,6 @@ services:
       - INDEXER_URL=http://${LAB_NAME}_wazuh_indexer:9200
       - INDEXER_USERNAME=admin
       - INDEXER_PASSWORD=admin
-      - DISABLE_FILEBEAT_CUSTOMIZE=true
     ports:
       - "${WAZUH_PORT_1514}:1514/udp"
       - "${WAZUH_PORT_1515}:1515"
@@ -17,14 +16,17 @@ services:
     volumes:
       - ./wazuh_manager/data:/var/ossec/data
       - ./wazuh_manager/config/ossec.conf:/var/ossec/etc/ossec.conf:ro
-      # Neutraliser totalement Filebeat interne (service s6)
-      - /dev/null:/etc/services.d/filebeat/run
-      - /dev/null:/etc/services.d/filebeat/finish
-      # Partager les logs avec Filebeat externe
-      - wazuh-logs:/var/ossec/logs
+      - ./wazuh_manager/certs:/etc/wazuh-manager/certs:ro
+      - ./wazuh_manager/config/disable-filebeat.sh:/etc/services.d/filebeat/run
+      - ./wazuh_manager/config/disable-filebeat.sh:/etc/services.d/filebeat/finish
     networks:
       ${LAB_NAME}_net:
         aliases: [ ${LAB_NAME}_wazuh_manager ]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -k http://localhost:55000 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
 
   ${LAB_NAME}_wazuh_indexer:
     image: wazuh/wazuh-indexer:4.13.0

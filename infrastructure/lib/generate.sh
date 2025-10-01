@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
-
-# Nom : generate.sh
-# Desc: Génère les fichiers du labo (env, Wazuh manager, OpenSearch, Filebeat 8.x)
+# Génère les fichiers nécessaires pour un labo
 
 generate_env() {
     local LAB_NAME="$1"
@@ -16,9 +14,8 @@ generate_env() {
         return
     fi
 
-    log_info "Génération du fichier .env pour $LAB_NAME..."
     cat > "$ENV_FILE" <<EOF
-COMPOSE_PROJECT_NAME=\${COMPOSE_PROJECT_NAME}
+COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
 LAB_NAME=${LAB_NAME}
 LAB_SUBNET=172.30.${LAB_NUM}.0/24
 WAZUH_PORT_1514=$((1500 + LAB_NUM))
@@ -34,25 +31,17 @@ generate_fileossec() {
     local LAB_DIR="$2"
     local FILE="$LAB_DIR/wazuh_manager/config/ossec.conf"
 
-    if [ -f "$FILE" ]; then
-        log_warn "$FILE existe déjà"
-        return
-    fi
-
-    log_info "Génération du fichier ossec.conf pour $LAB_NAME..."
     cat > "$FILE" <<EOF
 <ossec_config>
   <global>
     <jsonout_output>yes</jsonout_output>
     <alerts_log>yes</alerts_log>
   </global>
-
   <remote>
     <connection>secure</connection>
     <port>1514</port>
     <protocol>udp</protocol>
   </remote>
-
   <indexer>
     <enabled>yes</enabled>
     <hosts>
@@ -61,7 +50,6 @@ generate_fileossec() {
   </indexer>
 </ossec_config>
 EOF
-
     chmod 644 "$FILE"
     log_ok "$FILE généré"
 }
@@ -71,52 +59,84 @@ generate_opensearch_disable_security() {
     local LAB_DIR="$2"
     local FILE="$LAB_DIR/wazuh_indexer/config/opensearch.yml"
 
-    mkdir -p "$LAB_DIR/wazuh_indexer/config"
-
-    if [ -f "$FILE" ]; then
-        log_warn "$FILE existe déjà"
-        return
-    fi
-
-    log_info "Génération de la config OpenSearch (security OFF) pour $LAB_NAME..."
     cat > "$FILE" <<EOF
-cluster.name: wazuh
-node.name: ${LAB_NAME}_wazuh_indexer
 path.data: /var/lib/wazuh-indexer
+plugins.security.disabled: true
 network.host: 0.0.0.0
 discovery.type: single-node
-
-# Désactive complètement le plugin de sécurité (sinon il tente de lire /etc/wazuh-indexer/certs)
-plugins.security.disabled: true
 EOF
+    chmod 644 "$FILE"
+    log_ok "$FILE généré"
+}
+
+generate_dashboard_conf() {
+    local LAB_NAME="$1"
+    local LAB_DIR="$2"
+    local FILE="$LAB_DIR/wazuh_dashboard/config/opensearch_dashboards.yml"
+
+    mkdir -p "$LAB_DIR/wazuh_dashboard/config"
+
+    cat > "$FILE" <<YML
+server.host: "0.0.0.0"
+server.port: 5601
+opensearch.hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
+opensearch.ssl.verificationMode: "none"
+opensearch.requestHeadersAllowlist: ["securitytenant","Authorization"]
+YML
 
     chmod 644 "$FILE"
-    log_ok "OpenSearch config générée : $FILE"
+    log_ok "$FILE généré"
 }
+
+generate_compose() {
+    local LAB_NAME="$1"
+    local TEMPLATE="$2"
+    local OUTPUT="$3"
+    export LAB_NAME COMPOSE_PROJECT_NAME
+    envsubst < "$TEMPLATE" > "$OUTPUT"
+    log_ok "docker-compose généré : $OUTPUT"
+}
+
+generate_nginx_conf() {
+    local LAB_NAME="$1"
+    local FILE="$2/${LAB_NAME}.conf"
+
+    sudo tee "$FILE" >/dev/null <<EOF
+server {
+    listen 80;
+    server_name dvwa.${LAB_NAME}.local;
+    location / { proxy_pass http://${LAB_NAME}_dvwa:80; }
+}
+server {
+    listen 80;
+    server_name wazuh.${LAB_NAME}.local;
+    location / { proxy_pass http://${LAB_NAME}_wazuh_dashboard:5601; proxy_ssl_verify off; }
+}
+EOF
+    log_ok "Nginx conf générée : $FILE"
+}
+
+generate_certs() { :; } # inchangé
 
 generate_filebeat_config() {
     local LAB_NAME="$1"
     local LAB_DIR="$2"
     local FILE="$LAB_DIR/filebeat/filebeat.yml"
 
-    mkdir -p "$LAB_DIR/filebeat"
-
-    if [ -f "$FILE" ]; then
-        log_warn "$FILE existe déjà"
-        return
-    fi
-
-    log_info "Génération du filebeat.yml (Filebeat 8.x standalone) pour $LAB_NAME..."
     cat > "$FILE" <<EOF
-filebeat.inputs:
-  - type: log
-    enabled: true
-    paths:
-      - /var/ossec/logs/alerts/alerts.json
-    json.keys_under_root: true
-    json.add_error_key: true
+filebeat.modules:
+  - module: wazuh
+    alerts:
+      enabled: true
+      var.paths: ["/var/ossec/logs/alerts/alerts.json"]
+    archives: { enabled: false }
 
+setup.template.json.enabled: true
+setup.template.overwrite: true
+setup.template.json.path: "/etc/filebeat/wazuh-template.json"
+setup.template.json.name: "wazuh"
 setup.ilm.enabled: false
+setup.license.check: false
 
 output.elasticsearch:
   hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
@@ -125,20 +145,21 @@ output.elasticsearch:
 
 logging.metrics.enabled: false
 EOF
-
-    # Filebeat 8 exige root:root et 0644
-    sudo chown 0:0 "$FILE" 2>/dev/null || true
     chmod 644 "$FILE"
-    log_ok "Config Filebeat générée : $FILE"
+    log_ok "$FILE généré"
 }
 
-generate_compose() {
+generate_disable_filebeat() {
     local LAB_NAME="$1"
-    local TEMPLATE="$2"
-    local OUTPUT="$3"
+    local LAB_DIR="$2"
+    local FILE="$LAB_DIR/wazuh_manager/config/disable-filebeat.sh"
 
-    log_info "Génération docker-compose pour $LAB_NAME..."
-    export LAB_NAME COMPOSE_PROJECT_NAME
-    envsubst < "$TEMPLATE" > "$OUTPUT"
-    log_ok "docker-compose généré : $OUTPUT"
+    cat > "$FILE" <<EOF
+#!/bin/sh
+exit 0
+EOF
+    chmod +x "$FILE"
+    log_ok "Script disable-filebeat généré : $FILE"
 }
+
+fix_perms_filebeat() { :; } # inchangé

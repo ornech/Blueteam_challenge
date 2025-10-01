@@ -1,52 +1,101 @@
 #!/usr/bin/env bash
-# test_end2end_wazuh.sh
+# -*- coding: utf-8 -*-
 
-LAB=lab1
-INDEXER=${LAB}_wazuh_indexer
-MANAGER=${LAB}_wazuh_manager
-FILEBEAT=${LAB}_filebeat
-DASHBOARD=${LAB}_wazuh_dashboard
+# Script de diagnostic Wazuh Lab
+# Vérifie la présence des fichiers, leurs permissions et les logs des conteneurs.
 
-echo "=== Test end-to-end Wazuh (${LAB}) ==="
+set -euo pipefail
 
-# 1. Vérifier la version de Filebeat
-docker exec -it $FILEBEAT filebeat version
+LAB_NAME="${1:-lab1}"
+LAB_DIR="labs/$LAB_NAME"
+ENV_FILE="$LAB_DIR/${LAB_NAME}.env"
+COMPOSE_FILE="$LAB_DIR/docker-compose.yml"
 
-# 2. Vérifier que Filebeat utilise bien le pipeline
-if docker exec -it $FILEBEAT grep -q "pipeline: \"wazuh-alerts-pipeline\"" /usr/share/filebeat/filebeat.yml; then
-  echo "✅ Filebeat pointe vers wazuh-alerts-pipeline"
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+RESET=$(tput sgr0)
+
+ok()    { echo "${GREEN}[ OK ]${RESET} $*"; }
+warn()  { echo "${YELLOW}[WARN]${RESET} $*"; }
+err()   { echo "${RED}[ERR ]${RESET} $*"; }
+info()  { echo "${YELLOW}[INFO]${RESET} $*"; }
+
+# ----------------------------------------------------------
+# Vérification des fichiers critiques
+# ----------------------------------------------------------
+check_file() {
+    local file="$1"
+    local pattern="${2:-}"
+    if [ ! -f "$file" ]; then
+        err "Manquant : $file"
+        return 1
+    fi
+    ok "Présent : $file"
+    # Vérifie propriétaire/permissions
+    perms=$(stat -c "%U:%G %a" "$file")
+    echo "     ↳ Permissions: $perms"
+    # Vérifie contenu si un pattern est donné
+    if [ -n "$pattern" ]; then
+        if grep -q "$pattern" "$file"; then
+            ok "     ↳ Contenu vérifié ($pattern)"
+        else
+            warn "     ↳ Contenu inattendu (pattern $pattern non trouvé)"
+        fi
+    fi
+}
+
+info "=== Vérification fichiers ==="
+check_file "$ENV_FILE"
+check_file "$LAB_DIR/wazuh_manager/config/ossec.conf" "<ossec_config>"
+check_file "$LAB_DIR/wazuh_indexer/config/opensearch.yml" "plugins.security.disabled: true"
+check_file "$LAB_DIR/filebeat/filebeat.yml" "output.elasticsearch"
+
+# ----------------------------------------------------------
+# Vérification conteneurs
+# ----------------------------------------------------------
+info "=== Vérification conteneurs ==="
+containers=( "${LAB_NAME}_wazuh_indexer" "${LAB_NAME}_wazuh_manager" "${LAB_NAME}_wazuh_dashboard" "${LAB_NAME}_filebeat" )
+
+for c in "${containers[@]}"; do
+    if docker ps --format '{{.Names}}' | grep -q "^$c\$"; then
+        ok "Conteneur $c en cours d’exécution"
+    else
+        err "Conteneur $c absent ou arrêté"
+        continue
+    fi
+
+    # Affiche 20 dernières lignes de logs
+    echo "----- Logs $c -----"
+    docker logs --tail 20 "$c" || warn "Impossible de lire logs $c"
+    echo "-------------------"
+done
+
+# ----------------------------------------------------------
+# Tests spécifiques Filebeat et Indexer
+# ----------------------------------------------------------
+info "=== Tests spécifiques ==="
+
+# Vérifie que l’indexer répond
+if docker exec -it ${LAB_NAME}_wazuh_indexer curl -s http://localhost:9200/_cluster/health >/dev/null 2>&1; then
+    ok "Indexer répond sur port 9200"
 else
-  echo "❌ Filebeat ne pointe PAS vers wazuh-alerts-pipeline"
+    err "Indexer ne répond pas sur 9200"
 fi
 
-# 3. Injection d’un faux log JSON dans les logs de Wazuh
-echo '{"timestamp":"2025-09-29T15:45:00Z","rule":{"id":"100001","level":3},"agent":{"id":"001"},"data":{"srcip":"1.2.3.4"}}' \
-  | docker exec -i $MANAGER tee -a /var/ossec/logs/alerts/alerts.json >/dev/null
-echo "✅ Faux log injecté dans Wazuh"
-
-# 4. Attendre que Filebeat envoie
-sleep 5
-
-# 5. Vérifier que le document est dans l’index
-if docker exec -it $INDEXER curl -s "http://localhost:9200/wazuh-alerts-*/_search?q=data.srcip:1.2.3.4&pretty" | grep -q '"hits"'; then
-  echo "✅ Document retrouvé dans l’index"
+# Vérifie que Filebeat n’a pas d’erreur "_type"
+if docker logs ${LAB_NAME}_filebeat 2>&1 | grep -q "_type"; then
+    err "Filebeat remonte encore des erreurs liées à _type"
 else
-  echo "❌ Aucun document retrouvé"
+    ok "Pas d’erreurs _type dans Filebeat"
 fi
 
-# 6. Vérifier que le Dashboard est up
-if docker exec -it $DASHBOARD curl -s -o /dev/null -w "%{http_code}" http://localhost:5601 | grep -q "200"; then
-  echo "✅ Dashboard répond sur le port 5601"
+# Vérifie que l’indexer n’essaie pas de charger le plugin security
+if docker logs ${LAB_NAME}_wazuh_indexer 2>&1 | grep -q "OpenSearchSecurityPlugin"; then
+    err "Indexer tente encore de charger le plugin OpenSearchSecurityPlugin"
 else
-  echo "❌ Dashboard ne répond pas"
+    ok "Indexer : plugin sécurité bien désactivé"
 fi
 
-# 7. Vérifier que le Dashboard “voit” bien l’index
-if docker exec -it $INDEXER curl -s "http://localhost:9200/_cat/indices?v" | grep -q "wazuh-alerts"; then
-  echo "✅ Dashboard devrait voir l’index wazuh-alerts-*"
-else
-  echo "❌ Aucun index wazuh-alerts-* détecté"
-fi
-
-echo "=== Fin du test ==="
-
+echo
+info "=== Diagnostic terminé ==="
