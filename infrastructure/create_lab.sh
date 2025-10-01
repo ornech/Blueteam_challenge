@@ -85,6 +85,7 @@ fix_perms_data() {
 
 fix_perms_certs
 fix_perms_data
+fix_perms_filebeat "$LAB_DIR"
 
 # -------- Deploy lab --------
 log_info "Déploiement du lab ${LAB_NAME}..."

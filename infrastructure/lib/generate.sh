@@ -303,3 +303,17 @@ EOF
     chmod 644 "$FILE"
     log_ok "Config Filebeat générée : $FILE"
 }
+
+fix_perms_filebeat() {
+    local LAB_DIR="$1"
+
+    local FILE="$LAB_DIR/filebeat/filebeat.yml"
+    if [ -f "$FILE" ]; then
+        log_info "Correction des permissions de $FILE ..."
+        sudo chown root:root "$FILE"
+        sudo chmod 644 "$FILE"
+        log_ok "Permissions corrigées sur $FILE"
+    else
+        log_warn "Fichier $FILE introuvable, aucune correction appliquée"
+    fi
+}
