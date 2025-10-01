@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
 
-# Nom du script : generate.sh
-# Auteur : Jean-Francois Ornech '@ornech'
-# Description : Génère les fichiers nécessaires pour un labo (arbo par conteneur)
+# Nom : generate.sh
+# Desc: Génère les fichiers du labo (env, Wazuh manager, OpenSearch, Filebeat 8.x)
 
 generate_env() {
     local LAB_NAME="$1"
@@ -19,7 +18,7 @@ generate_env() {
 
     log_info "Génération du fichier .env pour $LAB_NAME..."
     cat > "$ENV_FILE" <<EOF
-COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
+COMPOSE_PROJECT_NAME=\${COMPOSE_PROJECT_NAME}
 LAB_NAME=${LAB_NAME}
 LAB_SUBNET=172.30.${LAB_NUM}.0/24
 WAZUH_PORT_1514=$((1500 + LAB_NUM))
@@ -67,6 +66,34 @@ EOF
     log_ok "$FILE généré"
 }
 
+generate_opensearch_disable_security() {
+    local LAB_NAME="$1"
+    local LAB_DIR="$2"
+    local FILE="$LAB_DIR/wazuh_indexer/config/opensearch.yml"
+
+    mkdir -p "$LAB_DIR/wazuh_indexer/config"
+
+    if [ -f "$FILE" ]; then
+        log_warn "$FILE existe déjà"
+        return
+    fi
+
+    log_info "Génération de la config OpenSearch (security OFF) pour $LAB_NAME..."
+    cat > "$FILE" <<EOF
+cluster.name: wazuh
+node.name: ${LAB_NAME}_wazuh_indexer
+path.data: /var/lib/wazuh-indexer
+network.host: 0.0.0.0
+discovery.type: single-node
+
+# Désactive complètement le plugin de sécurité (sinon il tente de lire /etc/wazuh-indexer/certs)
+plugins.security.disabled: true
+EOF
+
+    chmod 644 "$FILE"
+    log_ok "OpenSearch config générée : $FILE"
+}
+
 generate_filebeat_config() {
     local LAB_NAME="$1"
     local LAB_DIR="$2"
@@ -79,7 +106,7 @@ generate_filebeat_config() {
         return
     fi
 
-    log_info "Génération du fichier filebeat.yml standalone pour $LAB_NAME..."
+    log_info "Génération du filebeat.yml (Filebeat 8.x standalone) pour $LAB_NAME..."
     cat > "$FILE" <<EOF
 filebeat.inputs:
   - type: log
@@ -99,6 +126,8 @@ output.elasticsearch:
 logging.metrics.enabled: false
 EOF
 
+    # Filebeat 8 exige root:root et 0644
+    sudo chown 0:0 "$FILE" 2>/dev/null || true
     chmod 644 "$FILE"
     log_ok "Config Filebeat générée : $FILE"
 }

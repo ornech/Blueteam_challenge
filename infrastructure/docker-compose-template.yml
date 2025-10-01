@@ -17,7 +17,7 @@ services:
     volumes:
       - ./wazuh_manager/data:/var/ossec/data
       - ./wazuh_manager/config/ossec.conf:/var/ossec/etc/ossec.conf:ro
-      # Neutraliser Filebeat interne
+      # Neutraliser totalement Filebeat interne (service s6)
       - /dev/null:/etc/services.d/filebeat/run
       - /dev/null:/etc/services.d/filebeat/finish
       # Partager les logs avec Filebeat externe
@@ -33,14 +33,26 @@ services:
     restart: always
     environment:
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-      - node.name=${LAB_NAME}_wazuh_indexer
-      - plugins.security.disabled=true
-      - network.host=0.0.0.0
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+      memlock:
+        soft: -1
+        hard: -1
     volumes:
       - ./wazuh_indexer/data:/var/lib/wazuh-indexer
+      # Monte la conf qui désactive le plugin de sécurité
+      - ./wazuh_indexer/config/opensearch.yml:/usr/share/wazuh-indexer/opensearch.yml:ro
     networks:
       ${LAB_NAME}_net:
         aliases: [ ${LAB_NAME}_wazuh_indexer ]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
 
   ${LAB_NAME}_wazuh_dashboard:
     image: wazuh/wazuh-dashboard:4.13.0
@@ -59,10 +71,8 @@ services:
       ${LAB_NAME}_net:
         aliases: [ ${LAB_NAME}_wazuh_dashboard ]
     depends_on:
-      ${LAB_NAME}_wazuh_manager:
-        condition: service_started
       ${LAB_NAME}_wazuh_indexer:
-        condition: service_started
+        condition: service_healthy
 
   ${LAB_NAME}_filebeat:
     image: docker.elastic.co/beats/filebeat:8.12.0
@@ -71,12 +81,13 @@ services:
     volumes:
       - wazuh-logs:/var/ossec/logs:ro
       - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ${LAB_NAME}_filebeat_data:/usr/share/filebeat/data
     networks:
       ${LAB_NAME}_net:
         aliases: [ ${LAB_NAME}_filebeat ]
     depends_on:
       ${LAB_NAME}_wazuh_indexer:
-        condition: service_started
+        condition: service_healthy
 
   ${LAB_NAME}_mariadb:
     image: mariadb:10.6
@@ -111,6 +122,7 @@ services:
 
 volumes:
   wazuh-logs:
+  ${LAB_NAME}_filebeat_data:
 
 networks:
   ${LAB_NAME}_net:
