@@ -16,9 +16,10 @@ services:
       - "${WAZUH_PORT_55000}:55000"
     volumes:
       - ./wazuh_manager/data:/var/ossec/data
-      - ./wazuh_manager/logs:/var/ossec/logs
       - ./wazuh_manager/config/ossec.conf:/var/ossec/etc/ossec.conf:ro
       - ./wazuh_manager/certs:/etc/wazuh-manager/certs:ro
+      # force Filebeat à utiliser la config avec pipeline: "wazuh-remove-type".
+      - ./filebeat/filebeat.yml:/etc/filebeat/filebeat.yml:ro
     networks:
       ${LAB_NAME}_net:
         aliases: [ ${LAB_NAME}_wazuh_manager ]

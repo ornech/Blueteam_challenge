@@ -201,10 +201,9 @@ inject_filebeat_pipeline() {
     local LAB_NAME="$1"
     local INDEXER_CONTAINER="${LAB_NAME}_wazuh_indexer"
 
-    log_info "[$LAB_NAME] Injection du pipeline Ingest wazuh-remove-type dans $INDEXER_CONTAINER..."
+    log_info "Injection du pipeline ingest 'wazuh-remove-type' dans $INDEXER_CONTAINER..."
 
-    # Création du pipeline
-    docker exec -i "$INDEXER_CONTAINER" curl -s -u admin:admin \
+    docker exec -i "$INDEXER_CONTAINER" curl -s \
         -X PUT "http://localhost:9200/_ingest/pipeline/wazuh-remove-type" \
         -H 'Content-Type: application/json' \
         -d '{
@@ -212,38 +211,11 @@ inject_filebeat_pipeline() {
               "processors": [
                 { "remove": { "field": "_type", "ignore_missing": true } }
               ]
-            }' >/dev/null
-
-    if [ $? -eq 0 ]; then
-        log_ok "[$LAB_NAME] Pipeline wazuh-remove-type injecté"
-    else
-        log_error "[$LAB_NAME] Échec injection pipeline"
-        return 1
-    fi
-
-    # Configuration du pipeline par défaut pour wazuh-alerts-*
-    log_info "[$LAB_NAME] Application du pipeline par défaut sur wazuh-alerts-* ..."
-    docker exec -i "$INDEXER_CONTAINER" curl -s -u admin:admin \
-        -X PUT "http://localhost:9200/wazuh-alerts-*/_settings" \
-        -H 'Content-Type: application/json' \
-        -d '{
-              "index": {
-                "default_pipeline": "wazuh-remove-type"
-              }
-            }' >/dev/null
-
-    if [ $? -eq 0 ]; then
-        log_ok "[$LAB_NAME] Default pipeline appliqué sur wazuh-alerts-*"
-    else
-        log_error "[$LAB_NAME] Impossible de définir le default_pipeline"
-    fi
-
-    # Vérification
-    log_info "[$LAB_NAME] Vérification du pipeline par défaut..."
-    docker exec -i "$INDEXER_CONTAINER" curl -s -u admin:admin \
-        "http://localhost:9200/wazuh-alerts-*/_settings?pretty" | grep default_pipeline || \
-        log_warn "[$LAB_NAME] Pas de default_pipeline trouvé (à vérifier manuellement)"
+            }' >/dev/null \
+    && log_ok "Pipeline 'wazuh-remove-type' injecté dans $INDEXER_CONTAINER" \
+    || log_error "Échec de l’injection du pipeline dans $INDEXER_CONTAINER"
 }
+
 
 # --- Fonction : génération et initialisation du keystore Wazuh Dashboard ---
 generate_wazuh_dashboard_keystore() {

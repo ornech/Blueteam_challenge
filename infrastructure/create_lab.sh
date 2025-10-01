@@ -101,7 +101,7 @@ else
 fi
 
 # Après "docker compose up -d"
-# inject_wazuh_template "$LAB_NAME"
+inject_wazuh_template "$LAB_NAME"
 
 # -------- Wait for indexer --------
 INDEXER_URL="http://localhost:9200/_cluster/health"
