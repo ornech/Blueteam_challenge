@@ -195,117 +195,17 @@ EOF
         exit 1
     fi
 }
-inject_wazuh_template() {
-    local LAB_NAME="$1"
-    local INDEXER_CONTAINER="${LAB_NAME}_wazuh_indexer"
 
-    log_info "Injection du pipeline Wazuh dans l'indexer ($INDEXER_CONTAINER)..."
-
-    docker exec -i "$INDEXER_CONTAINER" curl -s --fail -u admin:admin \
-        -X PUT "http://localhost:9200/_ingest/pipeline/filebeat-7.10.2-wazuh-alerts-pipeline" \
-        -H 'Content-Type: application/json' \
-        -d '{
-              "description": "Pipeline Filebeat 7.10.2 pour Wazuh : supprime le champ _type obsolète",
-              "processors": [
-                { "remove": { "field": "_type", "ignore_missing": true } }
-              ]
-            }' >/dev/null 2>&1
-
-    if [ $? -eq 0 ]; then
-        log_ok "Pipeline injecté avec succès dans $INDEXER_CONTAINER"
-    else
-        log_error "Échec de l’injection du pipeline dans $INDEXER_CONTAINER (indexer pas encore prêt ?)"
-    fi
-}
-
-
-generate_filebeat_config() {
-  local LAB_NAME="$1"
-  local LAB_DIR="$2"
-
-  log_info "Génération du fichier filebeat.yml pour $LAB_NAME..."
-  mkdir -p "$LAB_DIR/filebeat"
-
-  cat > "$LAB_DIR/filebeat/filebeat.yml" <<EOF
-filebeat.inputs:
-  - type: log
-    enabled: true
-    paths:
-      - /var/ossec/logs/alerts/alerts.json
-    json.keys_under_root: true
-    json.add_error_key: true
-    json.message_key: log
-
-output.elasticsearch:
-  hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
-  username: "admin"
-  password: "admin"
-  index: "wazuh-alerts-%{+yyyy.MM.dd}"
-  pipeline: "remove_type"
-  allow_older_versions: true
-
-
-setup.template.enabled: false
-setup.ilm.enabled: false
-EOF
-
-  sudo chown root:root "$LAB_DIR/filebeat/filebeat.yml"
-  sudo chmod 644 "$LAB_DIR/filebeat/filebeat.yml"
-
-  log_ok "fichier filebeat.yml généré et permissions corrigées"
-}
-
-
-disable_manager_filebeat() {
-  local LAB_NAME="$1"
-  local CONF_FILE="./labs/$LAB_NAME/wazuh_manager/config/ossec.conf"
-
-  log_info "Désactivation du Filebeat intégré dans le manager ($LAB_NAME)..."
-
-  cp "$CONF_FILE" "${CONF_FILE}.bak"
-
-  cat > "$CONF_FILE" <<EOF
-<ossec_config>
-  <global>
-    <jsonout_output>yes</jsonout_output>
-    <alerts_log>yes</alerts_log>
-  </global>
-
-  <remote>
-    <connection>secure</connection>
-    <port>1514</port>
-    <protocol>udp</protocol>
-  </remote>
-</ossec_config>
-EOF
-
-  sudo chown root:root "$CONF_FILE"
-  sudo chmod 644 "$CONF_FILE"
-
-  log_ok "Filebeat désactivé dans le manager, config sauvegardée dans ${CONF_FILE}.bak"
-}
-
+# --- Fonction : injecte pipeline remove_type et configure par défaut ---
 inject_filebeat_pipeline() {
     local LAB_NAME="$1"
     local INDEXER_CONTAINER="${LAB_NAME}_wazuh_indexer"
 
-    log_info "Injection du pipeline Ingest remove_type dans $INDEXER_CONTAINER..."
+    log_info "[$LAB_NAME] Injection du pipeline Ingest wazuh-remove-type dans $INDEXER_CONTAINER..."
 
-
-    docker exec -i lab1_wazuh_indexer curl -s -X PUT "http://localhost:9200/_ingest/pipeline/remove_type" \
-         -H 'Content-Type: application/json' \
-         -d '{
-                "description": "Supprime le champ _type obsolète",
-                "processors": [
-                { "remove": { "field": "_type", "ignore_missing": true } }
-                ]
-            }'  >/dev/null 2>&1
-
-
-    
-
+    # Création du pipeline
     docker exec -i "$INDEXER_CONTAINER" curl -s -u admin:admin \
-        -X PUT "http://localhost:9200/_ingest/pipeline/remove_type" \
+        -X PUT "http://localhost:9200/_ingest/pipeline/wazuh-remove-type" \
         -H 'Content-Type: application/json' \
         -d '{
               "description": "Supprime le champ _type obsolète",
@@ -314,7 +214,35 @@ inject_filebeat_pipeline() {
               ]
             }' >/dev/null
 
-    log_ok "Pipeline remove_type injecté dans $INDEXER_CONTAINER"
+    if [ $? -eq 0 ]; then
+        log_ok "[$LAB_NAME] Pipeline wazuh-remove-type injecté"
+    else
+        log_error "[$LAB_NAME] Échec injection pipeline"
+        return 1
+    fi
+
+    # Configuration du pipeline par défaut pour wazuh-alerts-*
+    log_info "[$LAB_NAME] Application du pipeline par défaut sur wazuh-alerts-* ..."
+    docker exec -i "$INDEXER_CONTAINER" curl -s -u admin:admin \
+        -X PUT "http://localhost:9200/wazuh-alerts-*/_settings" \
+        -H 'Content-Type: application/json' \
+        -d '{
+              "index": {
+                "default_pipeline": "wazuh-remove-type"
+              }
+            }' >/dev/null
+
+    if [ $? -eq 0 ]; then
+        log_ok "[$LAB_NAME] Default pipeline appliqué sur wazuh-alerts-*"
+    else
+        log_error "[$LAB_NAME] Impossible de définir le default_pipeline"
+    fi
+
+    # Vérification
+    log_info "[$LAB_NAME] Vérification du pipeline par défaut..."
+    docker exec -i "$INDEXER_CONTAINER" curl -s -u admin:admin \
+        "http://localhost:9200/wazuh-alerts-*/_settings?pretty" | grep default_pipeline || \
+        log_warn "[$LAB_NAME] Pas de default_pipeline trouvé (à vérifier manuellement)"
 }
 
 # --- Fonction : génération et initialisation du keystore Wazuh Dashboard ---
