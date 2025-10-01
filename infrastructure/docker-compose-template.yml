@@ -6,30 +6,25 @@ services:
     restart: always
     environment:
       - WAZUH_CLUSTER_KEY=ClusterKey123
-      ## dernière modification
       - INDEXER_URL=http://${LAB_NAME}_wazuh_indexer:9200
       - INDEXER_USERNAME=admin
       - INDEXER_PASSWORD=admin
-      # Désactive filebeat dans le manager (on utilise un conteneur filebeat séparé)
-      - DISABLE_FILEBEAT=true
+      - DISABLE_FILEBEAT_CUSTOMIZE=true
     ports:
       - "${WAZUH_PORT_1514}:1514/udp"
       - "${WAZUH_PORT_1515}:1515"
       - "${WAZUH_PORT_55000}:55000"
     volumes:
       - ./wazuh_manager/data:/var/ossec/data
-      - ./wazuh_manager/logs:/var/ossec/logs
       - ./wazuh_manager/config/ossec.conf:/var/ossec/etc/ossec.conf:ro
-      - ./wazuh_manager/certs:/etc/wazuh-manager/certs:ro
+      # Neutraliser Filebeat interne
+      - /dev/null:/etc/services.d/filebeat/run
+      - /dev/null:/etc/services.d/filebeat/finish
+      # Partager les logs avec Filebeat externe
+      - wazuh-logs:/var/ossec/logs
     networks:
       ${LAB_NAME}_net:
-        aliases:
-          - ${LAB_NAME}_wazuh_manager
-    healthcheck:
-      test: ["CMD-SHELL", "curl -k http://localhost:55000 || exit 1"]
-      interval: 20s
-      timeout: 5s
-      retries: 10
+        aliases: [ ${LAB_NAME}_wazuh_manager ]
 
   ${LAB_NAME}_wazuh_indexer:
     image: wazuh/wazuh-indexer:4.13.0
@@ -38,32 +33,14 @@ services:
     restart: always
     environment:
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-      # - cluster.name=${LAB_NAME}-cluster
       - node.name=${LAB_NAME}_wazuh_indexer
       - plugins.security.disabled=true
       - network.host=0.0.0.0
-    security_opt:
-      - seccomp:unconfined
-    ulimits:
-      nproc: 65535
-      nofile:
-        soft: 65535
-        hard: 65535
-      memlock:
-        soft: -1
-        hard: -1
     volumes:
       - ./wazuh_indexer/data:/var/lib/wazuh-indexer
-      - ./wazuh_indexer/config/opensearch-disable-security.yml:/usr/share/wazuh-indexer/opensearch.yml:ro
-      - ./wazuh_indexer/certs:/etc/wazuh-indexer/certs:ro
     networks:
       ${LAB_NAME}_net:
-        aliases: [ ${LAB_NAME}_wazuh_indexer, wazuh.indexer ]
-    healthcheck:
-      test: ["CMD-SHELL", "curl -k http://localhost:9200/_cluster/health || exit 1"]
-      interval: 20s
-      timeout: 5s
-      retries: 10
+        aliases: [ ${LAB_NAME}_wazuh_indexer ]
 
   ${LAB_NAME}_wazuh_dashboard:
     image: wazuh/wazuh-dashboard:4.13.0
@@ -73,29 +50,33 @@ services:
     environment:
       - WAZUH_API_URL=http://${LAB_NAME}_wazuh_manager:55000
       - WAZUH_API_USER=admin
-      - WAZUH_API_PASSWORD=SecretPass123
+      - WAZUH_API_PASSWORD=admin
       - OPENSEARCH_HOSTS=http://${LAB_NAME}_wazuh_indexer:9200
       - OPENSEARCH_SSL_VERIFICATIONMODE=none
     ports:
       - "${WAZUH_PORT_5601}:5601"
-    volumes:
-      - ./wazuh_dashboard/certs:/etc/wazuh-dashboard/certs:ro
-      - ./wazuh_dashboard/config/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
-      - ./wazuh_dashboard/config/opensearch_dashboards.keystore:/usr/share/wazuh-dashboard/data/opensearch_dashboards.keystore
     networks:
       ${LAB_NAME}_net:
-        aliases:
-          - ${LAB_NAME}_wazuh_dashboard
+        aliases: [ ${LAB_NAME}_wazuh_dashboard ]
     depends_on:
       ${LAB_NAME}_wazuh_manager:
-        condition: service_healthy
+        condition: service_started
       ${LAB_NAME}_wazuh_indexer:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -k http://localhost:5601 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
+        condition: service_started
+
+  ${LAB_NAME}_filebeat:
+    image: docker.elastic.co/beats/filebeat:8.12.0
+    container_name: ${LAB_NAME}_filebeat
+    user: root
+    volumes:
+      - wazuh-logs:/var/ossec/logs:ro
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+    networks:
+      ${LAB_NAME}_net:
+        aliases: [ ${LAB_NAME}_filebeat ]
+    depends_on:
+      ${LAB_NAME}_wazuh_indexer:
+        condition: service_started
 
   ${LAB_NAME}_mariadb:
     image: mariadb:10.6
@@ -110,13 +91,7 @@ services:
       - ./mariadb/data:/var/lib/mysql
     networks:
       ${LAB_NAME}_net:
-        aliases:
-          - ${LAB_NAME}_mariadb
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$MYSQL_ROOT_PASSWORD || exit 1"]
-      interval: 20s
-      timeout: 5s
-      retries: 10
+        aliases: [ ${LAB_NAME}_mariadb ]
 
   ${LAB_NAME}_dvwa:
     image: vulnerables/web-dvwa:latest
@@ -124,49 +99,18 @@ services:
     restart: always
     depends_on:
       ${LAB_NAME}_mariadb:
-        condition: service_healthy
+        condition: service_started
     environment:
       - MYSQL_HOST=${LAB_NAME}_mariadb
       - MYSQL_USER=app
       - MYSQL_PASSWORD=vulnerables
       - MYSQL_DATABASE=dvwa
-      - PHP_DISPLAY_ERRORS=1
-      - DVWA_SECURITY=low
     networks:
       ${LAB_NAME}_net:
-        aliases:
-          - ${LAB_NAME}_dvwa
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
-      interval: 20s
-      timeout: 5s
-      retries: 10
+        aliases: [ ${LAB_NAME}_dvwa ]
 
-  ${LAB_NAME}_filebeat:
-    image: docker.elastic.co/beats/filebeat:8.15.2
-    container_name: ${LAB_NAME}_filebeat
-    user: root
-    restart: always
-    volumes:
-      # Logs du manager (alertes.json)
-      - ./wazuh_manager/logs:/var/ossec/logs:ro
-      # Config Filebeat générée automatiquement
-      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
-      # Data persistante de Filebeat (registry)
-      - ./filebeat/data:/usr/share/filebeat/data
-    networks:
-      ${LAB_NAME}_net:
-        aliases:
-          - ${LAB_NAME}_filebeat
-    depends_on:
-      ${LAB_NAME}_wazuh_indexer:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "filebeat test config -c /usr/share/filebeat/filebeat.yml || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
+volumes:
+  wazuh-logs:
 
 networks:
   ${LAB_NAME}_net:
