@@ -16,10 +16,10 @@ services:
       - "${WAZUH_PORT_55000}:55000"
     volumes:
       - ./wazuh_manager/data:/var/ossec/data
+      - ./wazuh_manager/logs:/var/ossec/logs          # <-- AJOUT
       - ./wazuh_manager/config/ossec.conf:/var/ossec/etc/ossec.conf:ro
       - ./wazuh_manager/certs:/etc/wazuh-manager/certs:ro
-      # - ./wazuh_manager/config/disable-filebeat.sh:/etc/services.d/filebeat/run
-      # - ./wazuh_manager/config/disable-filebeat.sh:/etc/services.d/filebeat/finish
+
     networks:
       ${LAB_NAME}_net:
         aliases: [ ${LAB_NAME}_wazuh_manager ]
@@ -70,7 +70,8 @@ services:
       - OPENSEARCH_SSL_VERIFICATIONMODE=none
     volumes:
       - ./certs/${LAB_NAME}:/etc/wazuh-dashboard/certs:ro
-      - ./labs/${LAB_NAME}/wazuh_dashboard/config/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
+      - ./wazuh_dashboard/config/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro   # <-- CORRIGÉ
+
     ports:
       - "${WAZUH_PORT_5601}:5601"
     networks:
@@ -88,7 +89,8 @@ services:
     volumes:
       - ./fluentbit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
       - ./fluentbit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
-      - ./wazuh_manager/data/logs/alerts:/var/ossec/logs/alerts:ro
+      - ./wazuh_manager/logs/alerts:/var/ossec/logs/alerts:ro   # <-- CORRIGÉ
+
     networks:
       ${LAB_NAME}_net:
         aliases:

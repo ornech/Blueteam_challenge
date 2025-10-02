@@ -139,16 +139,18 @@ generate_nginx_conf() {
 server {
     listen 80;
     server_name dvwa.${LAB_NAME}.local;
-    location / { proxy_pass http://${LAB_NAME}_dvwa:80; }
+    location / { proxy_pass http://127.0.0.1:8080; }   # <-- port publié DVWA
 }
 server {
     listen 80;
     server_name wazuh.${LAB_NAME}.local;
-    location / { proxy_pass http://${LAB_NAME}_wazuh_dashboard:5601; proxy_ssl_verify off; }
+    location / { proxy_pass http://127.0.0.1:\${WAZUH_PORT_5601}; proxy_ssl_verify off; }  # <-- port publié Dashboard
 }
 EOF
     log_ok "Nginx conf générée : $FILE"
 }
+
+
 
 generate_certs() { :; } # inchangé
 

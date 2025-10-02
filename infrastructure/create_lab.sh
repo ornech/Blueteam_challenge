@@ -36,13 +36,20 @@ if [ -d "$LAB_DIR" ]; then
     exit 1
 fi
 
-mkdir -p "$LAB_DIR/wazuh_manager/config" "$LAB_DIR/wazuh_manager/data" "$LAB_DIR/wazuh_manager/certs" \
-         "$LAB_DIR/wazuh_indexer/config" "$LAB_DIR/wazuh_indexer/data" "$LAB_DIR/wazuh_indexer/certs" \
-         "$LAB_DIR/wazuh_dashboard/config" "$LAB_DIR/wazuh_dashboard/certs" \
+mkdir -p "$LAB_DIR/wazuh_manager/config" \
+         "$LAB_DIR/wazuh_manager/data" \
+         "$LAB_DIR/wazuh_manager/certs" \
+         "$LAB_DIR/wazuh_manager/logs/alerts" \
+         "$LAB_DIR/wazuh_indexer/config" \
+         "$LAB_DIR/wazuh_indexer/data" \
+         "$LAB_DIR/wazuh_indexer/certs" \
+         "$LAB_DIR/wazuh_dashboard/config" \
+         "$LAB_DIR/wazuh_dashboard/certs" \
          "$LAB_DIR/mariadb/data" \
          "$LAB_DIR/dvwa" \
          "$LAB_DIR/common" \
-         "$LAB_DIR/filebeat"
+         "$LAB_DIR/fluentbit"
+
 
 log_ok "Dossiers prêts : $LAB_DIR"
 
