@@ -158,7 +158,6 @@ generate_filebeat_config() {
     local FILE="$LAB_DIR/filebeat/filebeat.yml"
 
     cat > "$FILE" <<EOF
-
 filebeat.inputs:
   - type: log
     enabled: true
@@ -168,23 +167,16 @@ filebeat.inputs:
     json.add_error_key: true
     json.expand_keys: true
 
-# On pousse sur un index plat "wazuh-alerts-YYYY.MM.DD"
 setup.template.enabled: true
 setup.template.overwrite: true
 setup.template.name: "wazuh-alerts"
 setup.template.pattern: "wazuh-alerts-*"
 setup.ilm.enabled: false
 
-# Ces clés évitent les appels de monitoring/X-Pack vers l’API ES
 monitoring.enabled: false
-xpack.monitoring.enabled: false
 
-output.elasticsearch:
+output.opensearch:
   hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
-  # Sécurité OpenSearch désactivée → pas besoin d'auth
-  # username: "admin"
-  # password: "admin"
-  allow_older_versions: true
   index: "wazuh-alerts-%{+yyyy.MM.dd}"
 
 logging.metrics.enabled: false

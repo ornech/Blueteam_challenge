@@ -80,19 +80,27 @@ services:
         condition: service_healthy
 
   ${LAB_NAME}_filebeat:
-    image: docker.elastic.co/beats/filebeat:8.12.0
+    image: opensearchproject/filebeat:7.17.9
     container_name: ${LAB_NAME}_filebeat
     user: root
     volumes:
-      - wazuh-logs:/var/ossec/logs:ro
-      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
-      - ${LAB_NAME}_filebeat_data:/usr/share/filebeat/data
+      - ./labs/${LAB_NAME}/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./labs/${LAB_NAME}/wazuh_manager/data/logs/alerts:/var/ossec/logs/alerts:ro
     networks:
       ${LAB_NAME}_net:
-        aliases: [ ${LAB_NAME}_filebeat ]
+        aliases:
+          - ${LAB_NAME}_filebeat
     depends_on:
+      ${LAB_NAME}_wazuh_manager:
+        condition: service_healthy
       ${LAB_NAME}_wazuh_indexer:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "filebeat", "test", "output", "-c", "/usr/share/filebeat/filebeat.yml"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
 
   ${LAB_NAME}_mariadb:
     image: mariadb:10.6
