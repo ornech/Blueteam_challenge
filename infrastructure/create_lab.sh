@@ -56,6 +56,8 @@ generate_nginx_conf "$LAB_NAME" "$NGINX_CONF_DIR"
 generate_certs "$LAB_NAME" "$LAB_DIR"
 generate_filebeat_config "$LAB_NAME" "$LAB_DIR"
 generate_disable_filebeat "$LAB_NAME" "$LAB_DIR"
+generate_dashboard_conf "$LAB_NAME" "$LAB_DIR"
+
 
 # -------- Fix perms --------
 fix_perms_certs() {

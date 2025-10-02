@@ -26,6 +26,39 @@ EOF
     log_ok ".env généré : $ENV_FILE"
 }
 
+generate_dashboard_conf() {
+    local LAB_NAME="$1"
+    local LAB_DIR="$2"
+    local FILE="$LAB_DIR/wazuh_dashboard/config/opensearch_dashboards.yml"
+
+    mkdir -p "$LAB_DIR/wazuh_dashboard/config"
+
+    cat > "$FILE" <<YML
+server.host: "0.0.0.0"
+server.port: 5601
+
+opensearch.hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
+opensearch.ssl.verificationMode: "none"
+
+# Auth par défaut (admin/admin)
+opensearch.username: "admin"
+opensearch.password: "admin"
+
+# Permet à Wazuh APP de passer des headers
+opensearch.requestHeadersAllowlist: ["securitytenant","Authorization"]
+
+# Wazuh app settings
+wazuh.manager: "https://${LAB_NAME}_wazuh_manager:55000"
+wazuh.username: "admin"
+wazuh.password: "SecretPass123"
+YML
+
+    chmod 644 "$FILE"
+    log_ok "$FILE généré"
+}
+
+
+
 generate_fileossec() {
     local LAB_NAME="$1"
     local LAB_DIR="$2"
@@ -146,6 +179,7 @@ output.elasticsearch:
 logging.metrics.enabled: false
 EOF
     chmod 644 "$FILE"
+    sudo chown root:root "$FILE"
     log_ok "$FILE généré"
 }
 

@@ -96,6 +96,8 @@ if docker logs ${LAB_NAME}_wazuh_indexer 2>&1 | grep -q "OpenSearchSecurityPlugi
 else
     ok "Indexer : plugin sécurité bien désactivé"
 fi
+echo "=== État des conteneurs ==="
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
-echo
-info "=== Diagnostic terminé ==="
+
+
