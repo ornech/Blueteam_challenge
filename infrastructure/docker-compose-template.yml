@@ -78,22 +78,24 @@ services:
     depends_on:
       ${LAB_NAME}_wazuh_indexer:
         condition: service_healthy
-
-  ${LAB_NAME}_dataprepper:
-    image: opensearchproject/data-prepper:2.9.0
-    container_name: ${LAB_NAME}_dataprepper
+  ${LAB_NAME}_fluentbit:
+    image: fluent/fluent-bit:2.1
+    container_name: ${LAB_NAME}_fluentbit
     restart: always
+    user: root
     volumes:
-      - ./labs/${LAB_NAME}/dataprepper/pipelines.yaml:/usr/share/data-prepper/pipelines/pipelines.yaml:ro
-      - ./labs/${LAB_NAME}/dataprepper/data-prepper-config.yaml:/usr/share/data-prepper/config/data-prepper-config.yaml:ro
+      - ./labs/${LAB_NAME}/fluentbit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./labs/${LAB_NAME}/fluentbit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
       - ./labs/${LAB_NAME}/wazuh_manager/data/logs/alerts:/var/ossec/logs/alerts:ro
     networks:
       ${LAB_NAME}_net:
         aliases:
-          - ${LAB_NAME}_dataprepper
+          - ${LAB_NAME}_fluentbit
     depends_on:
       ${LAB_NAME}_wazuh_indexer:
         condition: service_healthy
+
+
 
   ${LAB_NAME}_mariadb:
     image: mariadb:10.6

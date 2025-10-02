@@ -54,8 +54,8 @@ generate_dashboard_conf "$LAB_NAME" "$LAB_DIR"
 generate_compose "$LAB_NAME" "$COMPOSE_TEMPLATE" "$COMPOSE_FILE"
 generate_nginx_conf "$LAB_NAME" "$NGINX_CONF_DIR"
 generate_certs "$LAB_NAME" "$LAB_DIR"
-generate_dataprepper_config "$LAB_NAME" "$LAB_DIR"
 generate_dashboard_conf "$LAB_NAME" "$LAB_DIR"
+generate_fluentbit_config "$LAB_NAME" "$LAB_DIR"
 
 
 # -------- Fix perms --------
@@ -82,7 +82,6 @@ fix_perms_data() {
 
 fix_perms_certs
 fix_perms_data
-fix_perms_filebeat "$LAB_DIR"
 
 # -------- Deploy lab --------
 log_info "Déploiement du lab ${LAB_NAME}..."

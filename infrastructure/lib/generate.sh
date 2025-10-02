@@ -152,35 +152,54 @@ EOF
 
 generate_certs() { :; } # inchangé
 
-generate_dataprepper_config() {
+generate_fluentbit_config() {
     local LAB_NAME="$1"
     local LAB_DIR="$2"
+    local DIR="$LAB_DIR/fluentbit"
 
-    mkdir -p "$LAB_DIR/dataprepper"
+    mkdir -p "$DIR"
 
-    # pipelines.yaml
-    cat > "$LAB_DIR/dataprepper/pipelines.yaml" <<YML
-entry-pipeline:
-  source:
-    file:
-      path: /var/ossec/logs/alerts/alerts.json
-      format: json
-  sink:
-    - opensearch:
-        hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
-        index: "wazuh-alerts-%{+yyyy.MM.dd}"
-        username: "admin"
-        password: "admin"
-        insecure: true
-YML
+    # Config Fluent Bit
+    cat > "$DIR/fluent-bit.conf" <<EOF
+[SERVICE]
+    Flush        1
+    Daemon       Off
+    Log_Level    info
 
-    # data-prepper-config.yaml
-    cat > "$LAB_DIR/dataprepper/data-prepper-config.yaml" <<YML
-ssl: false
-YML
+[INPUT]
+    Name   tail
+    Path   /var/ossec/logs/alerts/alerts.json
+    Parser json
+    Tag    wazuh.alerts
 
-    chmod 644 "$LAB_DIR/dataprepper/"*.yaml
-    log_ok "$LAB_DIR/dataprepper/pipelines.yaml et data-prepper-config.yaml générés"
+[FILTER]
+    Name   modify
+    Match  wazuh.alerts
+    Rename log message
+
+[OUTPUT]
+    Name   opensearch
+    Match  *
+    Host   ${LAB_NAME}_wazuh_indexer
+    Port   9200
+    Index  wazuh-alerts
+    Type   _doc
+    Suppress_Type_Name On
+    Replace_Dots On
+    Logstash_Format On
+EOF
+
+    # Parser JSON
+    cat > "$DIR/parsers.conf" <<EOF
+[PARSER]
+    Name        json
+    Format      json
+    Time_Key    timestamp
+    Time_Format %Y-%m-%dT%H:%M:%S
+EOF
+
+    chmod 644 "$DIR"/*.conf
+    log_ok "Fluent Bit configs générés : $DIR"
 }
 
 
