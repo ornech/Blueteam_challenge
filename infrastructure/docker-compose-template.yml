@@ -9,6 +9,7 @@ services:
       - INDEXER_URL=http://${LAB_NAME}_wazuh_indexer:9200
       - INDEXER_USERNAME=admin
       - INDEXER_PASSWORD=admin
+      - DISABLE_FILEBEAT=1
     ports:
       - "${WAZUH_PORT_1514}:1514/udp"
       - "${WAZUH_PORT_1515}:1515"
@@ -17,8 +18,8 @@ services:
       - ./wazuh_manager/data:/var/ossec/data
       - ./wazuh_manager/config/ossec.conf:/var/ossec/etc/ossec.conf:ro
       - ./wazuh_manager/certs:/etc/wazuh-manager/certs:ro
-      - ./wazuh_manager/config/disable-filebeat.sh:/etc/services.d/filebeat/run
-      - ./wazuh_manager/config/disable-filebeat.sh:/etc/services.d/filebeat/finish
+      # - ./wazuh_manager/config/disable-filebeat.sh:/etc/services.d/filebeat/run
+      # - ./wazuh_manager/config/disable-filebeat.sh:/etc/services.d/filebeat/finish
     networks:
       ${LAB_NAME}_net:
         aliases: [ ${LAB_NAME}_wazuh_manager ]
