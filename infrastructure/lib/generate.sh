@@ -173,9 +173,9 @@ generate_fluentbit_config() {
     Name   tail
     Path   /var/ossec/logs/alerts/alerts.json
     Tag    wazuh.alerts
+    Parser json
     Read_From_Head On
     Skip_Long_Lines On
-    Refresh_Interval 10
 
 [FILTER]
     Name   modify
@@ -194,7 +194,8 @@ generate_fluentbit_config() {
 [OUTPUT]
     Name   stdout
     Match  *
-    Format json
+    Format json_lines
+
 EOF
 
     # Parser JSON
@@ -203,7 +204,9 @@ EOF
     Name        json
     Format      json
     Time_Key    timestamp
-    Time_Format %Y-%m-%dT%H:%M:%S
+    Time_Format %Y-%m-%dT%H:%M:%S.%L%z
+    Time_Keep   On
+    Decode_Field_As   json message
 EOF
 
     chmod 644 "$DIR"/*.conf
