@@ -164,14 +164,16 @@ generate_fluentbit_config() {
 [SERVICE]
     Flush        1
     Daemon       Off
-    Log_Level    info
+    Log_Level    debug
     Parsers_File parsers.conf
 
 [INPUT]
     Name   tail
     Path   /var/ossec/logs/alerts/alerts.json
-    Parser json
     Tag    wazuh.alerts
+    Read_From_Head On
+    Skip_Long_Lines On
+    Refresh_Interval 10
 
 [FILTER]
     Name   modify
@@ -186,6 +188,11 @@ generate_fluentbit_config() {
     Index  wazuh-alerts
     Suppress_Type_Name On
     Replace_Dots On
+
+[OUTPUT]
+    Name   stdout
+    Match  *
+    Format json
 EOF
 
     # Parser JSON
@@ -200,6 +207,7 @@ EOF
     chmod 644 "$DIR"/*.conf
     log_ok "Fluent Bit configs générés : $DIR"
 }
+
 
 
 
