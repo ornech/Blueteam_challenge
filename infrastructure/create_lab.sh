@@ -57,12 +57,14 @@ log_ok "Dossiers prêts : $LAB_DIR"
 generate_env "$LAB_NAME" "$LAB_DIR"
 generate_fileossec "$LAB_NAME" "$LAB_DIR"
 generate_opensearch_disable_security "$LAB_NAME" "$LAB_DIR"
+generate_opensearch_template "$LAB_NAME" "$LAB_DIR"   # <-- AJOUT
 generate_dashboard_conf "$LAB_NAME" "$LAB_DIR"
 generate_compose "$LAB_NAME" "$COMPOSE_TEMPLATE" "$COMPOSE_FILE"
 generate_nginx_conf "$LAB_NAME" "$NGINX_CONF_DIR"
 generate_certs "$LAB_NAME" "$LAB_DIR"
 generate_dashboard_conf "$LAB_NAME" "$LAB_DIR"
 generate_fluentbit_config "$LAB_NAME" "$LAB_DIR"
+
 
 
 # -------- Fix perms --------
@@ -118,7 +120,6 @@ docker exec -i ${LAB_NAME}_wazuh_indexer curl -s -X PUT "http://localhost:9200/_
   --data-binary @"$LAB_DIR/wazuh_indexer/config/wazuh-alerts-template.json" >/dev/null \
   && log_ok "Template wazuh-alerts appliqué dans OpenSearch." \
   || log_warn "Échec d'application du template wazuh-alerts."
-
 
 
 # -------- Infos --------
