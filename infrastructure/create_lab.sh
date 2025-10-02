@@ -105,6 +105,22 @@ else
     log_warn "Erreur dans la configuration Nginx; reload annulé."
 fi
 
+# -------- Deploy lab --------
+log_info "Déploiement du lab ${LAB_NAME}..."
+docker compose --project-name "${COMPOSE_PROJECT_NAME}" \
+    -f "$COMPOSE_FILE" \
+    --env-file "$ENV_FILE" up -d
+
+# -------- Configure OpenSearch Template --------
+log_info "Application du template wazuh-alerts dans OpenSearch..."
+docker exec -i ${LAB_NAME}_wazuh_indexer curl -s -X PUT "http://localhost:9200/_template/wazuh-alerts-template" \
+  -H 'Content-Type: application/json' \
+  --data-binary @"$LAB_DIR/wazuh_indexer/config/wazuh-alerts-template.json" >/dev/null \
+  && log_ok "Template wazuh-alerts appliqué dans OpenSearch." \
+  || log_warn "Échec d'application du template wazuh-alerts."
+
+
+
 # -------- Infos --------
 log_ok "Lab ${LAB_NAME} déployé !"
 echo

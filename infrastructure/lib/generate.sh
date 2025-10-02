@@ -230,3 +230,34 @@ EOF
 }
 
 fix_perms_filebeat() { :; } # inchangé
+
+generate_opensearch_template() {
+    local LAB_NAME="$1"
+    local LAB_DIR="$2"
+    local FILE="$LAB_DIR/wazuh_indexer/config/wazuh-alerts-template.json"
+
+    mkdir -p "$LAB_DIR/wazuh_indexer/config"
+
+    cat > "$FILE" <<EOF
+{
+  "index_patterns": ["wazuh-alerts*"],
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0
+  },
+  "mappings": {
+    "properties": {
+      "timestamp": { "type": "date", "format": "strict_date_optional_time||epoch_millis" },
+      "rule":      { "type": "object" },
+      "agent":     { "type": "object" },
+      "manager":   { "type": "object" },
+      "data":      { "type": "object" },
+      "message":   { "type": "text" }
+    }
+  }
+}
+EOF
+
+    chmod 644 "$FILE"
+    log_ok "Template OpenSearch généré : $FILE"
+}
