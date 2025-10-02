@@ -48,6 +48,8 @@ services:
       - ./wazuh_indexer/data:/var/lib/wazuh-indexer
       # Monte la conf qui désactive le plugin de sécurité
       - ./wazuh_indexer/config/opensearch.yml:/usr/share/wazuh-indexer/opensearch.yml:ro
+    ports:
+      - "${WAZUH_PORT_9200}:9200"
     networks:
       ${LAB_NAME}_net:
         aliases: [ ${LAB_NAME}_wazuh_indexer ]

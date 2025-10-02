@@ -115,11 +115,14 @@ docker compose --project-name "${COMPOSE_PROJECT_NAME}" \
 
 # -------- Configure OpenSearch Template --------
 log_info "Application du template wazuh-alerts dans OpenSearch..."
+docker cp "$LAB_DIR/wazuh_indexer/config/wazuh-alerts-template.json" ${LAB_NAME}_wazuh_indexer:/tmp/template.json
+
 docker exec -i ${LAB_NAME}_wazuh_indexer curl -s -X PUT "http://localhost:9200/_template/wazuh-alerts-template" \
   -H 'Content-Type: application/json' \
-  --data-binary @"$LAB_DIR/wazuh_indexer/config/wazuh-alerts-template.json" >/dev/null \
+  --data-binary @/tmp/template.json >/dev/null \
   && log_ok "Template wazuh-alerts appliqué dans OpenSearch." \
   || log_warn "Échec d'application du template wazuh-alerts."
+
 
 
 # -------- Infos --------
