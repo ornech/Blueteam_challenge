@@ -204,7 +204,7 @@ EOF
     Name        json
     Format      json
     Time_Key    timestamp
-    Time_Format %Y-%m-%dT%H:%M:%S.%L%z
+    Time_Format %Y-%m-%dT%H:%M:%S
     Time_Keep   On
     Decode_Field_As   json message
 EOF
