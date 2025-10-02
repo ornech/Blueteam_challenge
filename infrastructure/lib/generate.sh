@@ -186,7 +186,6 @@ generate_fluentbit_config() {
     Index  wazuh-alerts
     Suppress_Type_Name On
     Replace_Dots On
-    Logstash_Format On
 EOF
 
     # Parser JSON
