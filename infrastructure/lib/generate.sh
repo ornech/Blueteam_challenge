@@ -165,6 +165,7 @@ generate_fluentbit_config() {
     Flush        1
     Daemon       Off
     Log_Level    info
+    Parsers_File parsers.conf
 
 [INPUT]
     Name   tail
@@ -183,7 +184,6 @@ generate_fluentbit_config() {
     Host   ${LAB_NAME}_wazuh_indexer
     Port   9200
     Index  wazuh-alerts
-    Type   _doc
     Suppress_Type_Name On
     Replace_Dots On
     Logstash_Format On
@@ -201,6 +201,7 @@ EOF
     chmod 644 "$DIR"/*.conf
     log_ok "Fluent Bit configs générés : $DIR"
 }
+
 
 
 generate_disable_filebeat() {
