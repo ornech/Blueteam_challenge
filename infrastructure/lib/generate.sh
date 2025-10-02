@@ -157,17 +157,17 @@ generate_filebeat_config() {
     local FILE="$LAB_DIR/filebeat/filebeat.yml"
 
     cat > "$FILE" <<EOF
-filebeat.modules:
-  - module: wazuh
-    alerts:
-      enabled: true
-      var.paths: ["/var/ossec/logs/alerts/alerts.json"]
-    archives: { enabled: false }
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      - /var/ossec/logs/alerts/alerts.json
+    json.keys_under_root: true
+    json.add_error_key: true
+    json.expand_keys: true
 
-setup.template.json.enabled: true
+setup.template.enabled: true
 setup.template.overwrite: true
-setup.template.json.path: "/etc/filebeat/wazuh-template.json"
-setup.template.json.name: "wazuh"
 setup.ilm.enabled: false
 setup.license.check: false
 
@@ -178,9 +178,11 @@ output.elasticsearch:
 
 logging.metrics.enabled: false
 EOF
+    log_ok "$FILE généré"
+
     chmod 644 "$FILE"
     sudo chown root:root "$FILE"
-    log_ok "$FILE généré"
+    log_ok "Permissions fixées sur $FILE"
 }
 
 generate_disable_filebeat() {
