@@ -50,8 +50,14 @@ mkdir -p "$LAB_DIR/wazuh_manager/config" \
          "$LAB_DIR/common" \
          "$LAB_DIR/fluentbit"
 
+# Arborescence minimale pour que wazuh-manager démarre
+mkdir -p "$LAB_DIR/wazuh_manager/logs/archives/$(date +%Y)"
+touch    "$LAB_DIR/wazuh_manager/logs/api.log"
+touch    "$LAB_DIR/wazuh_manager/logs/ossec.log"
+touch    "$LAB_DIR/wazuh_manager/logs/cluster.log"
 
 log_ok "Dossiers prêts : $LAB_DIR"
+
 
 # -------- Run workflow --------
 generate_env "$LAB_NAME" "$LAB_DIR"
