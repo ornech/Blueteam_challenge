@@ -54,8 +54,7 @@ generate_dashboard_conf "$LAB_NAME" "$LAB_DIR"
 generate_compose "$LAB_NAME" "$COMPOSE_TEMPLATE" "$COMPOSE_FILE"
 generate_nginx_conf "$LAB_NAME" "$NGINX_CONF_DIR"
 generate_certs "$LAB_NAME" "$LAB_DIR"
-generate_filebeat_config "$LAB_NAME" "$LAB_DIR"
-generate_disable_filebeat "$LAB_NAME" "$LAB_DIR"
+generate_dataprepper_config "$LAB_NAME" "$LAB_DIR"
 generate_dashboard_conf "$LAB_NAME" "$LAB_DIR"
 
 

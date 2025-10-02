@@ -152,42 +152,37 @@ EOF
 
 generate_certs() { :; } # inchangé
 
-generate_filebeat_config() {
+generate_dataprepper_config() {
     local LAB_NAME="$1"
     local LAB_DIR="$2"
-    local FILE="$LAB_DIR/filebeat/filebeat.yml"
 
-    cat > "$FILE" <<EOF
-filebeat.inputs:
-  - type: log
-    enabled: true
-    paths:
-      - /var/ossec/logs/alerts/alerts.json
-    json.keys_under_root: true
-    json.add_error_key: true
-    json.expand_keys: true
+    mkdir -p "$LAB_DIR/dataprepper"
 
-setup.template.enabled: true
-setup.template.overwrite: true
-setup.template.name: "wazuh-alerts"
-setup.template.pattern: "wazuh-alerts-*"
-setup.ilm.enabled: false
+    # pipelines.yaml
+    cat > "$LAB_DIR/dataprepper/pipelines.yaml" <<YML
+entry-pipeline:
+  source:
+    file:
+      path: /var/ossec/logs/alerts/alerts.json
+      format: json
+  sink:
+    - opensearch:
+        hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
+        index: "wazuh-alerts-%{+yyyy.MM.dd}"
+        username: "admin"
+        password: "admin"
+        insecure: true
+YML
 
-monitoring.enabled: false
+    # data-prepper-config.yaml
+    cat > "$LAB_DIR/dataprepper/data-prepper-config.yaml" <<YML
+ssl: false
+YML
 
-output.opensearch:
-  hosts: ["http://${LAB_NAME}_wazuh_indexer:9200"]
-  index: "wazuh-alerts-%{+yyyy.MM.dd}"
-
-logging.metrics.enabled: false
-
-EOF
-    log_ok "$FILE généré"
-
-    chmod 644 "$FILE"
-    sudo chown root:root "$FILE"
-    log_ok "Permissions fixées sur $FILE"
+    chmod 644 "$LAB_DIR/dataprepper/"*.yaml
+    log_ok "$LAB_DIR/dataprepper/pipelines.yaml et data-prepper-config.yaml générés"
 }
+
 
 generate_disable_filebeat() {
     local LAB_NAME="$1"

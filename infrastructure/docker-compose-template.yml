@@ -79,28 +79,21 @@ services:
       ${LAB_NAME}_wazuh_indexer:
         condition: service_healthy
 
-  ${LAB_NAME}_filebeat:
-    image: opensearchproject/filebeat:7.17.9
-    container_name: ${LAB_NAME}_filebeat
-    user: root
+  ${LAB_NAME}_dataprepper:
+    image: opensearchproject/data-prepper:2.9.0
+    container_name: ${LAB_NAME}_dataprepper
+    restart: always
     volumes:
-      - ./labs/${LAB_NAME}/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./labs/${LAB_NAME}/dataprepper/pipelines.yaml:/usr/share/data-prepper/pipelines/pipelines.yaml:ro
+      - ./labs/${LAB_NAME}/dataprepper/data-prepper-config.yaml:/usr/share/data-prepper/config/data-prepper-config.yaml:ro
       - ./labs/${LAB_NAME}/wazuh_manager/data/logs/alerts:/var/ossec/logs/alerts:ro
     networks:
       ${LAB_NAME}_net:
         aliases:
-          - ${LAB_NAME}_filebeat
+          - ${LAB_NAME}_dataprepper
     depends_on:
-      ${LAB_NAME}_wazuh_manager:
-        condition: service_healthy
       ${LAB_NAME}_wazuh_indexer:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "filebeat", "test", "output", "-c", "/usr/share/filebeat/filebeat.yml"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
 
   ${LAB_NAME}_mariadb:
     image: mariadb:10.6
