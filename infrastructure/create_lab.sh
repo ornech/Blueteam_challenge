@@ -42,7 +42,7 @@ mkdir -p "$LAB_DIR/wazuh_manager/config" "$LAB_DIR/wazuh_manager/data" "$LAB_DIR
          "$LAB_DIR/mariadb/data" \
          "$LAB_DIR/dvwa" \
          "$LAB_DIR/common" \
-         "$LAB_DIR/filebeat/data"
+         "$LAB_DIR/filebeat"
 
 log_ok "Dossiers prêts : $LAB_DIR"
 

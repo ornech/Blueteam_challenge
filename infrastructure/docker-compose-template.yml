@@ -79,15 +79,16 @@ services:
     depends_on:
       ${LAB_NAME}_wazuh_indexer:
         condition: service_healthy
+
   ${LAB_NAME}_fluentbit:
     image: fluent/fluent-bit:2.1
     container_name: ${LAB_NAME}_fluentbit
     restart: always
     user: root
     volumes:
-      - ./labs/${LAB_NAME}/fluentbit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
-      - ./labs/${LAB_NAME}/fluentbit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
-      - ./labs/${LAB_NAME}/wazuh_manager/data/logs/alerts:/var/ossec/logs/alerts:ro
+      - ./fluentbit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./fluentbit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
+      - ./wazuh_manager/data/logs/alerts:/var/ossec/logs/alerts:ro
     networks:
       ${LAB_NAME}_net:
         aliases:
