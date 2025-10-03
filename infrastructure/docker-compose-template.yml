@@ -1,8 +1,8 @@
 services:
-  ${LAB_NAME}_wazuh_manager:
-    image: wazuh/wazuh-manager:4.13.0
-    container_name: ${LAB_NAME}_wazuh_manager
-    hostname: ${LAB_NAME}_wazuh_manager
+  ${LAB_NAME}_wazuh_server:
+    image: wazuh/wazuh-serverr:4.13.0
+    container_name: ${LAB_NAME}_wazuh_server
+    hostname: ${LAB_NAME}_wazuh_server
     restart: always
     environment:
       - WAZUH_CLUSTER_KEY=ClusterKey123
@@ -15,14 +15,14 @@ services:
       - "${WAZUH_PORT_1515}:1515"
       - "${WAZUH_PORT_55000}:55000"
     volumes:
-      - ./wazuh_manager/data:/var/ossec/data
-      - ./wazuh_manager/logs:/var/ossec/logs          # <-- AJOUT
-      - ./wazuh_manager/config/ossec.conf:/var/ossec/etc/ossec.conf:ro
-      - ./wazuh_manager/certs:/etc/wazuh-manager/certs:ro
+      - ./wazuh_server/data:/var/ossec/data
+      - ./wazuh_server/logs:/var/ossec/logs          # <-- AJOUT
+      - ./wazuh_server/config/ossec.conf:/var/ossec/etc/ossec.conf:ro
+      - ./wazuh_server/certs:/etc/wazuh-serverr/certs:ro
 
     networks:
       ${LAB_NAME}_net:
-        aliases: [ ${LAB_NAME}_wazuh_manager ]
+        aliases: [ ${LAB_NAME}_wazuh_server ]
     healthcheck:
       test: ["CMD-SHELL", "curl -k http://localhost:55000 || exit 1"]
       interval: 20s
@@ -65,7 +65,7 @@ services:
     hostname: ${LAB_NAME}_wazuh_dashboard
     restart: always
     environment:
-      - WAZUH_API_URL=http://${LAB_NAME}_wazuh_manager:55000
+      - WAZUH_API_URL=http://${LAB_NAME}_wazuh_server:55000
       - WAZUH_API_USER=admin
       - WAZUH_API_PASSWORD=admin
       - OPENSEARCH_HOSTS=http://${LAB_NAME}_wazuh_indexer:9200
@@ -91,7 +91,7 @@ services:
     volumes:
       - ./fluentbit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
       - ./fluentbit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
-      - ./wazuh_manager/logs/alerts:/var/ossec/logs/alerts:ro   # <-- CORRIGÉ
+      - ./wazuh_server/logs/alerts:/var/ossec/logs/alerts:ro   # <-- CORRIGÉ
 
     networks:
       ${LAB_NAME}_net:
@@ -136,7 +136,6 @@ services:
 
 volumes:
   wazuh-logs:
-  ${LAB_NAME}_filebeat_data:
 
 networks:
   ${LAB_NAME}_net:

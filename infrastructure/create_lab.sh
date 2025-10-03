@@ -36,10 +36,10 @@ if [ -d "$LAB_DIR" ]; then
     exit 1
 fi
 
-mkdir -p "$LAB_DIR/wazuh_manager/config" \
-         "$LAB_DIR/wazuh_manager/data" \
-         "$LAB_DIR/wazuh_manager/certs" \
-         "$LAB_DIR/wazuh_manager/logs/alerts" \
+mkdir -p "$LAB_DIR/wazuh_server/config" \
+         "$LAB_DIR/wazuh_server/data" \
+         "$LAB_DIR/wazuh_server/certs" \
+         "$LAB_DIR/wazuh_server/logs/alerts" \
          "$LAB_DIR/wazuh_indexer/config" \
          "$LAB_DIR/wazuh_indexer/data" \
          "$LAB_DIR/wazuh_indexer/certs" \
@@ -50,11 +50,11 @@ mkdir -p "$LAB_DIR/wazuh_manager/config" \
          "$LAB_DIR/common" \
          "$LAB_DIR/fluentbit"
 
-# Arborescence minimale pour que wazuh-manager démarre
-mkdir -p "$LAB_DIR/wazuh_manager/logs/archives/$(date +%Y)"
-touch    "$LAB_DIR/wazuh_manager/logs/api.log"
-touch    "$LAB_DIR/wazuh_manager/logs/ossec.log"
-touch    "$LAB_DIR/wazuh_manager/logs/cluster.log"
+# Arborescence minimale pour que wazuh-serverr démarre
+mkdir -p "$LAB_DIR/wazuh_server/logs/archives/$(date +%Y)"
+touch    "$LAB_DIR/wazuh_server/logs/api.log"
+touch    "$LAB_DIR/wazuh_server/logs/ossec.log"
+touch    "$LAB_DIR/wazuh_server/logs/cluster.log"
 
 log_ok "Dossiers prêts : $LAB_DIR"
 

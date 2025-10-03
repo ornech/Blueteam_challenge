@@ -31,7 +31,7 @@ LAB_NAME="$1"
 # -------- Prepare directories --------
 log_info "Création des dossiers nécessaires..."
 mkdir -p "$ENV_DIR" "$NGINX_CONF_DIR" \
-         "$DATA_DIR/${LAB_NAME}/wazuh_manager" \
+         "$DATA_DIR/${LAB_NAME}/wazuh_server" \
          "$DATA_DIR/${LAB_NAME}/wazuh_indexer" \
          "$DATA_DIR/${LAB_NAME}/mariadb"
 log_ok "Dossiers prêts : $ENV_DIR, $NGINX_CONF_DIR, $DATA_DIR/${LAB_NAME}/..."

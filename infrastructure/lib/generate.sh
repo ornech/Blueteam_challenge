@@ -48,7 +48,7 @@ opensearch.password: "admin"
 opensearch.requestHeadersAllowlist: ["securitytenant","Authorization"]
 
 # Wazuh app settings
-wazuh.manager: "https://${LAB_NAME}_wazuh_manager:55000"
+wazuh.serverr: "https://${LAB_NAME}_wazuh_server:55000"
 wazuh.username: "admin"
 wazuh.password: "SecretPass123"
 YML
@@ -62,7 +62,7 @@ YML
 generate_fileossec() {
     local LAB_NAME="$1"
     local LAB_DIR="$2"
-    local FILE="$LAB_DIR/wazuh_manager/config/ossec.conf"
+    local FILE="$LAB_DIR/wazuh_server/config/ossec.conf"
 
     cat > "$FILE" <<EOF
 <ossec_config>
@@ -219,7 +219,7 @@ EOF
 generate_disable_filebeat() {
     local LAB_NAME="$1"
     local LAB_DIR="$2"
-    local FILE="$LAB_DIR/wazuh_manager/config/disable-filebeat.sh"
+    local FILE="$LAB_DIR/wazuh_server/config/disable-filebeat.sh"
 
     cat > "$FILE" <<EOF
 #!/bin/sh
@@ -250,7 +250,7 @@ generate_opensearch_template() {
       "timestamp": { "type": "date", "format": "strict_date_optional_time||epoch_millis" },
       "rule":      { "type": "object" },
       "agent":     { "type": "object" },
-      "manager":   { "type": "object" },
+      "serverr":   { "type": "object" },
       "data":      { "type": "object" },
       "message":   { "type": "text" }
     }
