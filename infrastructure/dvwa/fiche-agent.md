@@ -15,7 +15,6 @@
 - [Ajustement des buffers](#ajustement-des-buffers)
 - [Schéma d’architecture Wazuh](#schéma-darchitecture-wazuh)
 
----
 
 ## L’agent Wazuh
 
@@ -26,7 +25,6 @@ Il collecte, analyse et transmet les événements de sécurité au **Wazuh Manag
 > 🧩 Il agit comme une sonde de sécurité locale.  
 > 📡 Il remonte les journaux, inventaires, alertes et indicateurs d’intégrité.
 
----
 
 ### Architecture et communication
 
@@ -39,7 +37,6 @@ Il collecte, analyse et transmet les événements de sécurité au **Wazuh Manag
 
 💡 L’agent utilise une clé unique (stockée dans `/var/ossec/etc/client.keys`) pour s’authentifier auprès du manager.
 
----
 
 ### Principales fonctionnalités
 
@@ -52,7 +49,6 @@ Il collecte, analyse et transmet les événements de sécurité au **Wazuh Manag
 | **Évaluation de configuration (SCA)** | Analyse la conformité du système selon des politiques (CIS, ISO, etc.). | `sca` |
 | **Collecte via commandes personnalisées** | Exécute périodiquement des commandes locales (`df -P`, `netstat`, etc.). | `localfile` (format command) |
 
----
 
 ## Installation d’un agent
 
@@ -70,7 +66,6 @@ Wazuh permet de déployer un agent directement depuis le **Dashboard** :
 📚 Documentation officielle :  
 [https://documentation.wazuh.com/current/installation-guide/wazuh-agent/index.html](https://documentation.wazuh.com/current/installation-guide/wazuh-agent/index.html)
 
----
 
 ## Tests de configuration
 
@@ -134,7 +129,6 @@ sudo systemctl status wazuh-agent
 sudo cat /var/ossec/logs/ossec.log | grep Analyzing
 ```
 
----
 
 ### Vérifiez les clés d’authentification
 
@@ -155,7 +149,6 @@ sudo cat /var/ossec/etc/client.keys
 002 agent-dvwa any 20d007e7374644184980e9c79edf264fde9f553cf9040c730c249947e9e52f7a
 ```
 
----
 
 ### Vérifiez la connectivité
 
@@ -169,7 +162,6 @@ Résultat attendu :
 Connection to 192.168.56.7 1514 port [tcp/*] succeeded!
 ```
 
----
 
 ### Vérifiez que l’agent soit lancé
 
@@ -189,7 +181,6 @@ Processus visibles :
 - wazuh-modulesd
 ```
 
----
 
 ### Vérifiez la remontée d’information
 
@@ -207,7 +198,6 @@ Wazuh agent_control. List of available agents:
  ID: 002, Name: agent-dvwa, IP: any, Active   ← ICI
 ```
 
----
 
 ## Ajustement des buffers
 
@@ -223,7 +213,6 @@ agent.remote_timeout=20
 agent.control_keep_alive=30
 ```
 
----
 
 ## Schéma d’architecture Wazuh
 
@@ -246,9 +235,6 @@ agent.control_keep_alive=30
       └─────────────────┘
 ```
 
----
 
 🧭 **Référence officielle :**
 [Wazuh Documentation – Agent](https://documentation.wazuh.com/current/user-manual/agents/index.html)
-
-```
